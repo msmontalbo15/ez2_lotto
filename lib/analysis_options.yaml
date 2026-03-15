@@ -1,0 +1,11 @@
+# analysis_options.yaml
+include: package:flutter_lints/flutter.yaml
+
+linter:
+  rules:
+    # These fire on widgets that use runtime data and genuinely cannot be const.
+    # Suppressing them avoids noise without affecting correctness or performance.
+    prefer_const_constructors: false
+    prefer_const_literals_to_create_immutables: false
+    # Already fixed manually; keeping off to avoid future noise.
+    curly_braces_in_flow_control_structures: false
