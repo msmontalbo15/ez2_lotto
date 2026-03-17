@@ -3,7 +3,13 @@
 import 'package:flutter/material.dart';
 import '../constants.dart';
 import '../models.dart';
-import '../helpers.dart';
+// import '../helpers.dart';
+
+// ── Helpers ───────────────────────────────────────────────────
+String formatWinners(int count) {
+  if (count >= 1000) return '${(count / 1000).toStringAsFixed(1)}k';
+  return '$count';
+}
 
 // ── Lotto Ball ────────────────────────────────────────────────
 class LottoBall extends StatelessWidget {

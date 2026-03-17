@@ -1,193 +1,243 @@
 // lib/main.dart
-
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'app_provider.dart';
+import 'cache_service.dart';
 import 'constants.dart';
-import 'helpers.dart';
-import 'widgets/common.dart';
 import 'screens/today_screen.dart';
 import 'screens/history_screen.dart';
 import 'screens/stats_screen.dart';
 import 'screens/ticket_screen.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-  runApp(
-    ChangeNotifierProvider(
-      create: (_) => AppProvider(),
-      child: const EZ2App(),
-    ),
-  );
+  await Future.wait([
+    Supabase.initialize(url: kSupabaseUrl, anonKey: kSupabaseAnonKey),
+    CacheService.init(),
+  ]);
+  runApp(const EZ2App());
 }
 
 class EZ2App extends StatelessWidget {
   const EZ2App({super.key});
 
   @override
-  Widget build(BuildContext context) => MaterialApp(
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => AppProvider()..init(),
+      child: MaterialApp(
         title: 'EZ2 Lotto',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primary),
           useMaterial3: true,
-          fontFamily: 'Georgia',
-          scaffoldBackgroundColor: AppColors.bgGradStart,
-          appBarTheme: const AppBarTheme(
-            backgroundColor: AppColors.primary,
-            foregroundColor: Colors.white,
-            elevation: 4,
-            shadowColor: Colors.black38,
-            systemOverlayStyle: SystemUiOverlayStyle(
-              statusBarColor: AppColors.primaryDark,
-              statusBarIconBrightness: Brightness.light,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: const Color(0xFFC0392B),
+            brightness: Brightness.light,
+          ),
+          // Elder-friendly: larger base font sizes
+          textTheme: const TextTheme(
+            bodyLarge: TextStyle(fontSize: 18, height: 1.5),
+            bodyMedium: TextStyle(fontSize: 16, height: 1.5),
+            bodySmall: TextStyle(fontSize: 14, height: 1.4),
+            titleLarge: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+            titleMedium: TextStyle(fontSize: 19, fontWeight: FontWeight.w600),
+          ),
+          cardTheme: CardThemeData(
+            elevation: 0,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+            color: Colors.white,
+          ),
+          elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(
+              minimumSize: const Size(0, 52),
+              textStyle:
+                  const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+            ),
+          ),
+          inputDecorationTheme: InputDecorationTheme(
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          ),
+          navigationBarTheme: NavigationBarThemeData(
+            height: 70,
+            labelTextStyle: WidgetStateProperty.all(
+              const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
             ),
           ),
         ),
-        home: const _HomeShell(),
-      );
+        home: const _Shell(),
+      ),
+    );
+  }
 }
 
-// ── Main shell with bottom nav ────────────────────────────────
-class _HomeShell extends StatefulWidget {
-  const _HomeShell();
-
+class _Shell extends StatefulWidget {
+  const _Shell();
   @override
-  State<_HomeShell> createState() => _HomeShellState();
+  State<_Shell> createState() => _ShellState();
 }
 
-class _HomeShellState extends State<_HomeShell> {
-  int _tab = 0;
+class _ShellState extends State<_Shell> {
+  int _idx = 0;
 
-  static const _screens = [
-    TodayScreen(),
-    HistoryScreen(),
+  static final _screens = [
+    const TodayScreen(),
+    const HistoryScreen(),
     StatsScreen(),
-    TicketScreen(),
+    const TicketScreen(),
+  ];
+
+  static const _destinations = [
+    NavigationDestination(
+      icon: Icon(Icons.today_outlined, size: 28),
+      selectedIcon: Icon(Icons.today_rounded, size: 28),
+      label: 'Resulta',
+    ),
+    NavigationDestination(
+      icon: Icon(Icons.calendar_month_outlined, size: 28),
+      selectedIcon: Icon(Icons.calendar_month_rounded, size: 28),
+      label: 'Kasaysayan',
+    ),
+    NavigationDestination(
+      icon: Icon(Icons.bar_chart_outlined, size: 28),
+      selectedIcon: Icon(Icons.bar_chart_rounded, size: 28),
+      label: 'Istatistika',
+    ),
+    NavigationDestination(
+      icon: Icon(Icons.confirmation_number_outlined, size: 28),
+      selectedIcon: Icon(Icons.confirmation_number_rounded, size: 28),
+      label: 'Tiket',
+    ),
   ];
 
   @override
   Widget build(BuildContext context) {
     final prov = context.watch<AppProvider>();
-    final ph = getPHTime();
-    final timeStr =
-        '${ph.hour.toString().padLeft(2, '0')}:${ph.minute.toString().padLeft(2, '0')}:${ph.second.toString().padLeft(2, '0')}';
 
-    // Force rebuild for clock
-    prov.currentTime;
+    // First-run loading screen: show while initial fetch is in progress
+    if (prov.isRefreshing && prov.todayResult == null) {
+      return const _FirstRunLoader();
+    }
 
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              AppColors.bgGradStart,
-              AppColors.bgGradMid,
-              AppColors.bgGradEnd
+      body: IndexedStack(
+        index: _idx,
+        children: _screens.map((s) => RepaintBoundary(child: s)).toList(),
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _idx,
+        onDestinationSelected: (i) => setState(() => _idx = i),
+        destinations: _destinations,
+        backgroundColor: Colors.white,
+        indicatorColor: const Color(0xFFC0392B).withValues(alpha: 0.12),
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        elevation: 8,
+      ),
+    );
+  }
+}
+
+// ── First-run loading screen ──────────────────────────────────
+class _FirstRunLoader extends StatefulWidget {
+  const _FirstRunLoader();
+  @override
+  State<_FirstRunLoader> createState() => _FirstRunLoaderState();
+}
+
+class _FirstRunLoaderState extends State<_FirstRunLoader>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFC0392B),
+      body: SafeArea(
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Logo / App name
+              const Text(
+                'EZ2',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 64,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 4,
+                ),
+              ),
+              const Text(
+                '2D LOTTO',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 6,
+                ),
+              ),
+              const SizedBox(height: 48),
+              // Pulsing dots
+              AnimatedBuilder(
+                animation: _ctrl,
+                builder: (_, __) => Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: List.generate(3, (i) {
+                    final delay = i / 3;
+                    final v = ((_ctrl.value - delay).abs() < 0.5)
+                        ? 1.0 - (_ctrl.value - delay).abs() * 2
+                        : 0.3;
+                    return Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 5),
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color:
+                            Colors.white.withValues(alpha: v.clamp(0.3, 1.0)),
+                      ),
+                    );
+                  }),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Loading results...',
+                style: TextStyle(
+                  color: Colors.white60,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 80),
+              Text(
+                '© ${DateTime.now().year} Mark Spencer D. Montalbo',
+                style: const TextStyle(
+                  color: Colors.white38,
+                  fontSize: 12,
+                ),
+              ),
             ],
-            stops: [0.0, 0.6, 1.0],
           ),
         ),
-        child: Column(children: [
-          // ── App Bar ────────────────────────────────────
-          Container(
-            padding: EdgeInsets.only(
-              top: MediaQuery.of(context).padding.top + 12,
-              bottom: 14,
-              left: 18,
-              right: 18,
-            ),
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  AppColors.primaryLight,
-                  AppColors.primary,
-                  AppColors.primaryDark
-                ],
-              ),
-              boxShadow: [
-                BoxShadow(
-                    color: Colors.black38, blurRadius: 20, offset: Offset(0, 5))
-              ],
-            ),
-            child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(children: const [
-                    Text('🎱', style: TextStyle(fontSize: 36)),
-                    SizedBox(width: 12),
-                    Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('EZ2 / 2D Lotto',
-                              style: TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.w900,
-                                  color: Colors.white,
-                                  height: 1.1)),
-                          Text('PCSO • 2PM · 5PM · 9PM',
-                              style: TextStyle(
-                                  fontSize: 12, color: Color(0xFFFFCDD2))),
-                        ]),
-                  ]),
-                  Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                    Text(timeStr,
-                        style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white)),
-                    const SizedBox(height: 4),
-                    OnlineIndicator(
-                        isOnline:
-                            prov.allRows.isNotEmpty || prov.lastUpdate != null),
-                  ]),
-                ]),
-          ),
-
-          // ── Screen content ─────────────────────────────
-          Expanded(child: _screens[_tab]),
-        ]),
-      ),
-
-      // ── Bottom navigation ─────────────────────────────
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _tab,
-        onDestinationSelected: (i) => setState(() => _tab = i),
-        backgroundColor: Colors.white,
-        indicatorColor: const Color(0xFFFFF3E0),
-        shadowColor: Colors.black12,
-        elevation: 8,
-        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.list_alt_outlined),
-            selectedIcon: Icon(Icons.list_alt, color: AppColors.accent),
-            label: 'Resulta',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.calendar_month_outlined),
-            selectedIcon: Icon(Icons.calendar_month, color: AppColors.accent),
-            label: 'Kasaysayan',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.bar_chart_outlined),
-            selectedIcon: Icon(Icons.bar_chart, color: AppColors.accent),
-            label: 'Stats',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.confirmation_number_outlined),
-            selectedIcon:
-                Icon(Icons.confirmation_number, color: AppColors.accent),
-            label: 'I-check',
-          ),
-        ],
       ),
     );
   }

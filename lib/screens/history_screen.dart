@@ -1,388 +1,495 @@
 // lib/screens/history_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:shimmer/shimmer.dart';
 import '../app_provider.dart';
-import '../constants.dart';
 import '../helpers.dart';
 import '../models.dart';
 
+// Parses "Mar 17, 2026" → DateTime for correct chronological sorting
+DateTime _parseDate(String d) {
+  const months = {
+    'Jan': 1,
+    'Feb': 2,
+    'Mar': 3,
+    'Apr': 4,
+    'May': 5,
+    'Jun': 6,
+    'Jul': 7,
+    'Aug': 8,
+    'Sep': 9,
+    'Oct': 10,
+    'Nov': 11,
+    'Dec': 12,
+  };
+  try {
+    final p = d.split(' '); // ["Mar", "17,", "2026"]
+    final m = months[p[0]] ?? 1;
+    final day = int.parse(p[1].replaceAll(',', ''));
+    final yr = int.parse(p[2]);
+    return DateTime(yr, m, day);
+  } catch (_) {
+    return DateTime(2000); // fallback keeps bad data at bottom
+  }
+}
+
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
-
   @override
   State<HistoryScreen> createState() => _HistoryScreenState();
 }
 
 class _HistoryScreenState extends State<HistoryScreen> {
-  final _monthTabs = buildMonthTabs(count: 3);
-  int _activeMonth = 0;
-
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
-  }
-
-  void _load() {
-    final key = _monthTabs[_activeMonth].monthKey;
-    context.read<AppProvider>().fetchMonth(key);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final prov = context.read<AppProvider>();
+      for (final mk in prov.availableMonths) {
+        if (prov.historyRows[mk]?.isNotEmpty != true &&
+            prov.historyLoading[mk] != true) {
+          prov.fetchMonth(mk);
+        }
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final prov = context.watch<AppProvider>();
-    final currentTab = _monthTabs[_activeMonth];
-    final key = currentTab.monthKey;
-    final rows = prov.historyData[key] ?? [];
-    final loading = prov.historyLoading[key] ?? false;
-    final error = prov.historyError[key];
-    final todayShort = toShortDate(getPHTime());
+    final months = prov.availableMonths;
+    final mk = prov.selectedMonth;
 
-    return Column(children: [
-      // ── Month selector tabs ─────────────────────────────
-      Container(
-        color: Colors.white,
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-        child: Row(
-          children: _monthTabs.asMap().entries.map((e) {
-            final i = e.key;
-            final tab = e.value;
-            final active = _activeMonth == i;
-            return Expanded(
-              child: GestureDetector(
-                onTap: () {
-                  setState(() => _activeMonth = i);
-                  context.read<AppProvider>().fetchMonth(tab.monthKey);
-                },
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  margin: EdgeInsets.only(
-                      right: i < _monthTabs.length - 1 ? 8 : 0, bottom: 12),
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
-                  decoration: BoxDecoration(
-                    color: active ? AppColors.primary : Colors.white,
-                    borderRadius: BorderRadius.circular(14),
-                    border: active
-                        ? null
-                        : Border.all(color: const Color(0xFFEEEEEE), width: 2),
-                    boxShadow: [
-                      BoxShadow(
-                        color: active
-                            ? AppColors.primary.withValues(alpha: 0.35)
-                            : Colors.black.withValues(alpha: 0.05),
-                        blurRadius: active ? 12 : 4,
-                      )
-                    ],
-                  ),
-                  child: Text(
-                    tab.label,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      color: active ? Colors.white : Colors.grey[600],
-                    ),
-                  ),
+    // Use ONLY the rows for the currently selected month
+    final rows = prov.historyRows[mk];
+    final isLoading =
+        prov.historyLoading[mk] == true && (rows == null || rows.isEmpty);
+
+    final todayDate = toShortDate(getPHTime());
+    final ph = getPHTime();
+    final isCurrent = mk == monthKey(ph);
+
+    // Build visible rows for this specific month
+    List<DayResult> visible = [];
+
+    if (rows != null) {
+      // Start with the DB rows for this month
+      final rowMap = <String, DayResult>{};
+      for (final r in rows) {
+        rowMap[r.date] = r;
+      }
+
+      // If current month, inject live today + ensure today row exists
+      if (isCurrent) {
+        final liveToday = prov.todayResult;
+        if (liveToday != null && liveToday.hasAnyResult) {
+          rowMap[todayDate] = liveToday;
+        } else if (!rowMap.containsKey(todayDate)) {
+          // Add empty row for today so it always appears
+          rowMap[todayDate] = DayResult(
+            date: todayDate,
+            day: toDayName(ph),
+          );
+        }
+      }
+
+      // Sort newest first — parse to DateTime for correct ordering
+      // (dates are stored as "Mar 17, 2026" — string compare alone is unreliable)
+      visible = rowMap.values.toList()
+        ..sort((a, b) => _parseDate(b.date).compareTo(_parseDate(a.date)));
+
+      // Filter: only show days up to today (no future dates),
+      // and only show days that either have results OR are today
+      visible = visible.where((r) {
+        if (r.date == todayDate) return true; // always show today
+        if (r.hasAnyResult) return true; // show any day with data
+        return false;
+      }).toList();
+    }
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F0E8),
+      body: SafeArea(
+        child: Column(children: [
+          // ── Header ─────────────────────────────────────
+          Container(
+            width: double.infinity,
+            decoration: const BoxDecoration(
+              color: Color(0xFF1A5276),
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
+            ),
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('KASAYSAYAN',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 28,
+                      fontWeight: FontWeight.w900)),
+              const SizedBox(height: 4),
+              Text('Mga nakaraang resulta ng EZ2',
+                  style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.75),
+                      fontSize: 16)),
+              const SizedBox(height: 16),
+              // Month tabs
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: months.map((m) {
+                    final selected = m == mk;
+                    return GestureDetector(
+                      onTap: () => prov.setMonth(m),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        margin: const EdgeInsets.only(right: 10),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 18, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: selected
+                              ? Colors.white
+                              : Colors.white.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(
+                            color: selected
+                                ? Colors.white
+                                : Colors.white.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Text(
+                          _monthLabelEn(m),
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: selected
+                                ? const Color(0xFF1A5276)
+                                : Colors.white,
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
                 ),
               ),
-            );
-          }).toList(),
-        ),
-      ),
+            ]),
+          ),
 
-      // ── Table header ──────────────────────────────────
-      Container(
-        color: Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Container(
-          decoration: BoxDecoration(
-              color: AppColors.primary,
-              borderRadius: BorderRadius.circular(14)),
-          child: Row(children: [
-            _HeaderCell('Petsa', flex: 14),
-            _HeaderCell('2 PM', flex: 10),
-            _HeaderCell('5 PM', flex: 10),
-            _HeaderCell('9 PM', flex: 10),
-          ]),
-        ),
-      ),
-      const SizedBox(height: 6),
+          // ── Column headers ──────────────────────────────
+          Container(
+            margin: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+                color: const Color(0xFF1A5276),
+                borderRadius: BorderRadius.circular(12)),
+            child: const Row(children: [
+              SizedBox(
+                  width: 72,
+                  child: Text('DATE',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.5))),
+              Expanded(
+                  child: Center(
+                      child: Text('2 PM',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800)))),
+              Expanded(
+                  child: Center(
+                      child: Text('5 PM',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800)))),
+              Expanded(
+                  child: Center(
+                      child: Text('9 PM',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800)))),
+            ]),
+          ),
 
-      // ── Table body ────────────────────────────────────
-      Expanded(
-        child: loading
-            ? const _SkeletonList()
-            : error != null
-                ? _ErrorView(onRetry: () => prov.retryMonth(key))
-                : rows.isEmpty
-                    ? const _EmptyView()
-                    : ListView.separated(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                        itemCount: rows.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 6),
-                        itemBuilder: (context, i) {
-                          final row = rows[i];
-                          final isToday = row.date == todayShort;
-                          // Merge live data if this is today's row
-                          final display =
-                              isToday ? row.mergeWith(prov.liveToday) : row;
-                          return _HistoryRow(
-                              row: display, isToday: isToday, index: i);
+          // ── Rows ────────────────────────────────────────
+          Expanded(
+            child: isLoading
+                ? _SkeletonList()
+                : visible.isEmpty
+                    ? _EmptyState(onRetry: () => prov.fetchMonth(mk))
+                    : ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                        itemCount: visible.length,
+                        itemBuilder: (ctx, i) {
+                          final r = visible[i];
+                          final isToday = r.date == todayDate;
+                          return _HistoryRow(row: r, isToday: isToday);
                         },
                       ),
+          ),
+
+          if (prov.isOffline)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              color: const Color(0xFFFFF3CD),
+              child: const Row(children: [
+                Icon(Icons.wifi_off_rounded,
+                    size: 14, color: Color(0xFF856404)),
+                SizedBox(width: 6),
+                Text('Offline — showing cached data',
+                    style: TextStyle(fontSize: 12, color: Color(0xFF856404))),
+              ]),
+            ),
+        ]),
       ),
+    );
+  }
+
+  String _monthLabelEn(String mk) {
+    final parts = mk.split('-');
+    if (parts.length != 2) return mk;
+    const months = [
+      '',
+      'JAN',
+      'FEB',
+      'MAR',
+      'APR',
+      'MAY',
+      'JUN',
+      'JUL',
+      'AUG',
+      'SEP',
+      'OCT',
+      'NOV',
+      'DEC'
+    ];
+    final m = int.tryParse(parts[1]) ?? 0;
+    return '${months[m]} ${parts[0]}';
+  }
+}
+
+// ── History Row ───────────────────────────────────────────────
+class _HistoryRow extends StatelessWidget {
+  final DayResult row;
+  final bool isToday;
+  const _HistoryRow({required this.row, required this.isToday});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: isToday ? const Color(0xFFFFF8E1) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isToday ? const Color(0xFFFFCA2C) : Colors.grey.shade200,
+          width: isToday ? 2 : 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 4,
+              offset: const Offset(0, 1))
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        child: Row(children: [
+          SizedBox(
+            width: 72,
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              if (isToday)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 3),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                      color: const Color(0xFFFFCA2C),
+                      borderRadius: BorderRadius.circular(5)),
+                  child: const Text('TODAY',
+                      style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF856404))),
+                ),
+              Text(_dayNum(row.date),
+                  style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF2C3E50))),
+              Text(_dayName(row.date),
+                  style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey.shade500,
+                      fontWeight: FontWeight.w600)),
+            ]),
+          ),
+          Expanded(
+              child: _DrawCell(
+                  combo: row.result2pm,
+                  winners: row.winners2pm,
+                  color: const Color(0xFFE67E22))),
+          Expanded(
+              child: _DrawCell(
+                  combo: row.result5pm,
+                  winners: row.winners5pm,
+                  color: const Color(0xFF8E44AD))),
+          Expanded(
+              child: _DrawCell(
+                  combo: row.result9pm,
+                  winners: row.winners9pm,
+                  color: const Color(0xFF2C3E50))),
+        ]),
+      ),
+    );
+  }
+
+  String _dayNum(String d) {
+    final p = d.split(' ');
+    if (p.length >= 2) return p[1].replaceAll(',', '');
+    return d;
+  }
+
+  String _dayName(String d) {
+    try {
+      const months = {
+        'Jan': 1,
+        'Feb': 2,
+        'Mar': 3,
+        'Apr': 4,
+        'May': 5,
+        'Jun': 6,
+        'Jul': 7,
+        'Aug': 8,
+        'Sep': 9,
+        'Oct': 10,
+        'Nov': 11,
+        'Dec': 12
+      };
+      final p = d.split(' ');
+      final m = months[p[0]] ?? 1;
+      final dy = int.parse(p[1].replaceAll(',', ''));
+      final y = int.parse(p[2]);
+      const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      return days[DateTime(y, m, dy).weekday - 1];
+    } catch (_) {
+      return '';
+    }
+  }
+}
+
+// ── Draw Cell ─────────────────────────────────────────────────
+class _DrawCell extends StatelessWidget {
+  final String? combo;
+  final int? winners;
+  final Color color;
+  const _DrawCell(
+      {required this.combo, required this.winners, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    if (combo == null) {
+      return Center(
+          child: Text('—',
+              style: TextStyle(fontSize: 22, color: Colors.grey.shade300)));
+    }
+    final parts = combo!.split('-');
+    return Column(mainAxisSize: MainAxisSize.min, children: [
+      Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+        _Ball(n: parts.isNotEmpty ? parts[0] : '?', color: color),
+        const SizedBox(width: 3),
+        Text('-', style: TextStyle(fontSize: 12, color: Colors.grey.shade400)),
+        const SizedBox(width: 3),
+        _Ball(n: parts.length > 1 ? parts[1] : '?', color: color),
+      ]),
+      if (winners != null) ...[
+        const SizedBox(height: 3),
+        Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Icon(Icons.emoji_events_rounded,
+              size: 10, color: color.withValues(alpha: 0.7)),
+          const SizedBox(width: 2),
+          Text('$winners',
+              style: TextStyle(
+                  fontSize: 10, fontWeight: FontWeight.w700, color: color)),
+        ]),
+      ],
     ]);
   }
 }
 
-// ── Table header cell ─────────────────────────────────────────
-class _HeaderCell extends StatelessWidget {
-  final String text;
-  final int flex;
-  const _HeaderCell(this.text, {required this.flex});
-
+class _Ball extends StatelessWidget {
+  final String n;
+  final Color color;
+  const _Ball({required this.n, required this.color});
   @override
-  Widget build(BuildContext context) => Expanded(
-        flex: flex,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
-          child: Text(text,
-              textAlign: TextAlign.center,
+  Widget build(BuildContext context) {
+    return Container(
+      width: 32,
+      height: 32,
+      decoration:
+          BoxDecoration(shape: BoxShape.circle, color: color, boxShadow: [
+        BoxShadow(
+            color: color.withValues(alpha: 0.25),
+            blurRadius: 3,
+            offset: const Offset(0, 1))
+      ]),
+      child: Center(
+          child: Text(n,
               style: const TextStyle(
-                  fontSize: 15,
+                  fontSize: 13,
                   fontWeight: FontWeight.w900,
-                  color: Colors.white)),
-        ),
-      );
+                  color: Colors.white))),
+    );
+  }
 }
 
-// ── History row ───────────────────────────────────────────────
-class _HistoryRow extends StatelessWidget {
-  final DayResult row;
-  final bool isToday;
-  final int index;
-
-  const _HistoryRow(
-      {required this.row, required this.isToday, required this.index});
-
-  @override
-  Widget build(BuildContext context) => Container(
-        decoration: BoxDecoration(
-          color: isToday
-              ? const Color(0xFFFFF3E0)
-              : index.isEven
-                  ? Colors.white
-                  : const Color(0xFFFAFAFA),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: isToday ? AppColors.amber : const Color(0xFFF0F0F0),
-            width: isToday ? 3 : 1.5,
-          ),
-          boxShadow: isToday
-              ? [
-                  BoxShadow(
-                      color: AppColors.amber.withValues(alpha: 0.22),
-                      blurRadius: 12)
-                ]
-              : null,
-        ),
-        child: IntrinsicHeight(
-          child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            // Date column
-            Expanded(
-              flex: 14,
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-                decoration: const BoxDecoration(
-                  border: Border(right: BorderSide(color: Color(0xFFF0F0F0))),
-                ),
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (isToday) ...[
-                        Container(
-                          margin: const EdgeInsets.only(bottom: 4),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFFCCBC),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: const Text('NGAYON',
-                              style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w800,
-                                  color: AppColors.accent)),
-                        ),
-                      ],
-                      Text(
-                        row.date.replaceAll(RegExp(r',\s*\d{4}'), ''),
-                        style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.textDark),
-                      ),
-                      Text(
-                        row.day.length >= 3 ? row.day.substring(0, 3) : row.day,
-                        style: TextStyle(fontSize: 12, color: Colors.grey[500]),
-                      ),
-                    ]),
-              ),
-            ),
-            // Result columns
-            for (final slot in ['2pm', '5pm', '9pm']) ...[
-              Expanded(
-                flex: 10,
-                child: _ResultCell(
-                  value: row.resultFor(slot),
-                  winners: row.winnersFor(slot),
-                  isToday: isToday,
-                  isLast: slot == '9pm',
-                ),
-              ),
-            ],
-          ]),
-        ),
-      );
-}
-
-class _ResultCell extends StatelessWidget {
-  final String? value;
-  final int? winners;
-  final bool isToday;
-  final bool isLast;
-
-  const _ResultCell(
-      {this.value, this.winners, required this.isToday, required this.isLast});
-
-  @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
-        decoration: BoxDecoration(
-          border: isLast
-              ? null
-              : const Border(right: BorderSide(color: Color(0xFFF0F0F0))),
-        ),
-        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          if (value != null && value!.isNotEmpty) ...[
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-              decoration: BoxDecoration(
-                color:
-                    isToday ? const Color(0xFFFFF3E0) : const Color(0xFFF8F8F8),
-                border: Border.all(
-                    color: isToday ? AppColors.accent : const Color(0xFFE0E0E0),
-                    width: 2),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                value!.replaceAll('-', '–'),
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w900,
-                  color: isToday
-                      ? const Color(0xFFBF360C)
-                      : const Color(0xFF222222),
-                ),
-              ),
-            ),
-            if (winners != null) ...[
-              const SizedBox(height: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: winners == 0
-                      ? const Color(0xFFF5F5F5)
-                      : const Color(0xFFE8F5E9),
-                  border: Border.all(
-                      color: winners == 0
-                          ? const Color(0xFFEEEEEE)
-                          : const Color(0xFFA5D6A7)),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  winners == 0 ? '0' : '${winners!}',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    color: winners == 0 ? Colors.grey[400] : AppColors.green,
-                  ),
-                ),
-              ),
-            ],
-          ] else ...[
-            Text('—',
-                style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.grey[400],
-                    fontStyle: FontStyle.italic)),
-          ],
-        ]),
-      );
-}
-
-// ── Skeleton loading ──────────────────────────────────────────
 class _SkeletonList extends StatelessWidget {
-  const _SkeletonList();
-
   @override
-  Widget build(BuildContext context) => ListView.separated(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-        itemCount: 10,
-        separatorBuilder: (_, __) => const SizedBox(height: 6),
-        itemBuilder: (_, __) => Shimmer.fromColors(
-          baseColor: const Color(0xFFEEEEEE),
-          highlightColor: const Color(0xFFF5F5F5),
-          child: Container(
-              height: 64,
-              decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(14))),
-        ),
-      );
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      itemCount: 10,
+      itemBuilder: (_, __) => Container(
+        height: 64,
+        margin: const EdgeInsets.only(bottom: 10),
+        decoration: BoxDecoration(
+            color: Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(16)),
+      ),
+    );
+  }
 }
 
-// ── Error view ────────────────────────────────────────────────
-class _ErrorView extends StatelessWidget {
+class _EmptyState extends StatelessWidget {
   final VoidCallback onRetry;
-  const _ErrorView({required this.onRetry});
-
+  const _EmptyState({required this.onRetry});
   @override
-  Widget build(BuildContext context) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const Text('⚠️', style: TextStyle(fontSize: 48)),
-            const SizedBox(height: 12),
-            const Text('Hindi nakuha ang kasaysayan.',
-                style: TextStyle(fontSize: 16, color: AppColors.primary)),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: onRetry,
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white),
-              child: const Text('🔄 Subukan Ulit'),
-            ),
-          ]),
-        ),
-      );
-}
-
-class _EmptyView extends StatelessWidget {
-  const _EmptyView();
-
-  @override
-  Widget build(BuildContext context) => const Center(
+  Widget build(BuildContext context) {
+    return Center(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Text('📭', style: TextStyle(fontSize: 48)),
-          SizedBox(height: 12),
-          Text('Walang datos para sa buwang ito.',
-              style: TextStyle(fontSize: 16, color: AppColors.textLight)),
-        ]),
-      );
+      Icon(Icons.inbox_rounded, size: 56, color: Colors.grey.shade300),
+      const SizedBox(height: 12),
+      const Text('Walang datos',
+          style: TextStyle(
+              fontSize: 18, fontWeight: FontWeight.w700, color: Colors.grey)),
+      const SizedBox(height: 14),
+      ElevatedButton.icon(
+        onPressed: onRetry,
+        icon: const Icon(Icons.refresh_rounded),
+        label: const Text('SUBUKAN ULIT',
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF1A5276),
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      ),
+    ]));
+  }
 }

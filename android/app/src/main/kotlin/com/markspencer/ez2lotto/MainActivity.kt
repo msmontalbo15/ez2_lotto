@@ -1,4 +1,4 @@
-package com.example.ez2_lotto
+package com.markspencer.ez2lotto
 
 import io.flutter.embedding.android.FlutterActivity
 

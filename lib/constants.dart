@@ -59,6 +59,7 @@ const kMonthsFil = [
   'December',
 ];
 
-// ── Base URL for your Vercel API ──────────────────────────────
-// Replace with your actual deployed URL
-const kApiBase = 'https://your-app.vercel.app/api/ez2';
+// ── Supabase config ───────────────────────────────────────────
+const kSupabaseUrl = 'https://rdmnigpdkcypfvaoychy.supabase.co';
+const kSupabaseAnonKey =
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkbW5pZ3Bka2N5cGZ2YW95Y2h5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1NTgxMDMsImV4cCI6MjA4OTEzNDEwM30.pQ2G5pKfG4sWtVlx_M-4HnploI23_HlU7FZdHSCC3Qo';
