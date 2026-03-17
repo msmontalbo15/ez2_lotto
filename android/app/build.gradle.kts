@@ -17,7 +17,7 @@ val hasKeystore = keystorePropertiesFile.exists() &&
     keystoreProperties.getProperty("keyAlias") != null
 
 android {
-    namespace = "com.example.ez2_lotto"
+    namespace = "com.markspencer.ez2lotto"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -31,7 +31,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.ez2_lotto"
+        applicationId = "com.markspencer.ez2lotto"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
