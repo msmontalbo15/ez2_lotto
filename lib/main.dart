@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'app_provider.dart';
 import 'cache_service.dart';
+import 'connectivity_service.dart';
 import 'constants.dart';
 import 'screens/today_screen.dart';
 import 'screens/history_screen.dart';
@@ -16,6 +17,14 @@ Future<void> main() async {
     Supabase.initialize(url: kSupabaseUrl, anonKey: kSupabaseAnonKey),
     CacheService.init(),
   ]);
+
+  // Initialize connectivity monitoring (with fallback if it fails)
+  try {
+    await ConnectivityService.instance.init();
+  } catch (e) {
+    debugPrint('Connectivity init failed: $e');
+  }
+
   runApp(const EZ2App());
 }
 
@@ -123,9 +132,36 @@ class _ShellState extends State<_Shell> {
     }
 
     return Scaffold(
-      body: IndexedStack(
-        index: _idx,
-        children: _screens.map((s) => RepaintBoundary(child: s)).toList(),
+      body: Column(
+        children: [
+          // Offline indicator banner
+          if (prov.isOffline)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+              color: Colors.orange.shade700,
+              child: const SafeArea(
+                bottom: false,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.wifi_off, color: Colors.white, size: 18),
+                    SizedBox(width: 8),
+                    Text(
+                      'You are offline - showing cached data',
+                      style: TextStyle(color: Colors.white, fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          Expanded(
+            child: IndexedStack(
+              index: _idx,
+              children: _screens.map((s) => RepaintBoundary(child: s)).toList(),
+            ),
+          ),
+        ],
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _idx,
@@ -150,6 +186,7 @@ class _FirstRunLoader extends StatefulWidget {
 class _FirstRunLoaderState extends State<_FirstRunLoader>
     with SingleTickerProviderStateMixin {
   late final AnimationController _ctrl;
+  bool _isRetrying = false;
 
   @override
   void initState() {
@@ -166,8 +203,20 @@ class _FirstRunLoaderState extends State<_FirstRunLoader>
     super.dispose();
   }
 
+  Future<void> _handleRetry() async {
+    setState(() => _isRetrying = true);
+    final prov = context.read<AppProvider>();
+    await prov.fetchToday();
+    if (mounted) {
+      setState(() => _isRetrying = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final prov = context.watch<AppProvider>();
+    final isOffline = prov.isOffline;
+
     return Scaffold(
       backgroundColor: const Color(0xFFC0392B),
       body: SafeArea(
@@ -219,14 +268,34 @@ class _FirstRunLoaderState extends State<_FirstRunLoader>
                 ),
               ),
               const SizedBox(height: 20),
-              const Text(
-                'Loading results...',
-                style: TextStyle(
+              Text(
+                isOffline ? 'No internet connection...' : 'Loading results...',
+                style: const TextStyle(
                   color: Colors.white60,
                   fontSize: 15,
                   fontWeight: FontWeight.w500,
                 ),
               ),
+              const SizedBox(height: 24),
+              // Retry button for offline case
+              if (isOffline && !_isRetrying)
+                TextButton.icon(
+                  onPressed: _handleRetry,
+                  icon: const Icon(Icons.refresh, color: Colors.white70),
+                  label: const Text(
+                    'Try to reconnect',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                ),
+              if (_isRetrying)
+                const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation(Colors.white70),
+                  ),
+                ),
               const SizedBox(height: 80),
               Text(
                 '© ${DateTime.now().year} Mark Spencer D. Montalbo',

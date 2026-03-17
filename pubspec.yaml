@@ -1,7 +1,7 @@
 name: ez2_lotto
-description: EZ2 / 2D Lotto PCSO Results App
+description: EZ2 / 2D Lotto PCSO Results App - Track live draws, history, statistics, and check your tickets
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.0.1
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -15,6 +15,7 @@ dependencies:
   image_picker: ^1.1.2
   intl: ^0.19.0
   shimmer: ^3.0.0
+  connectivity_plus: ^6.0.3
 
 dev_dependencies:
   flutter_launcher_icons: ^0.14.1
@@ -46,4 +47,4 @@ flutter_native_splash:
   android_12:
     image: assets/icon/app_icon_foreground.png
     icon_background_color: "#FFFFFF"
-  fullscreen: false
+  fullscreen: true

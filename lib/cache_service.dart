@@ -1,5 +1,6 @@
 // lib/cache_service.dart
 // Local disk cache — stale-while-revalidate pattern
+// Enhanced with extended TTL for better offline support
 
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -16,17 +17,29 @@ class CacheService {
     return _prefs!;
   }
 
-  // TTLs
-  static const Duration kTodayTtl = Duration(minutes: 3);
-  static const Duration kCurrentMonthTtl = Duration(hours: 24);
-  static const Duration kPastMonthTtl = Duration(days: 7);
+  // TTLs - Extended for aggressive caching
+  // Cache-first approach: use cached data unless explicitly refreshed
+  static const Duration kTodayTtl =
+      Duration(minutes: 15); // Longer TTL for today
+  static const Duration kTodayTtlOffline =
+      Duration(hours: 24); // Extended when offline
+  static const Duration kCurrentMonthTtl =
+      Duration(hours: 12); // 12 hours for current month
+  static const Duration kCurrentMonthTtlOffline =
+      Duration(days: 7); // Extended when offline
+  static const Duration kPastMonthTtl =
+      Duration(days: 7); // Past months can be cached longer
+  static const Duration kPastMonthTtlOffline =
+      Duration(days: 30); // Extended when offline
 
-  static Future<void> set(String key, dynamic data) async {
+  static Future<void> set(String key, dynamic data,
+      {Map<String, String>? metadata}) async {
     await _p.setString(
         key,
         jsonEncode({
           'data': data,
           'savedAt': DateTime.now().toIso8601String(),
+          'metadata': metadata ?? {},
         }));
   }
 
@@ -38,6 +51,31 @@ class CacheService {
     } catch (_) {
       return null;
     }
+  }
+
+  /// Get specific metadata value by key
+  static String? getMetadata(String key, String metaKey) {
+    final entry = get(key);
+    if (entry == null) return null;
+    final meta = entry['metadata'] as Map<String, dynamic>?;
+    return meta?[metaKey] as String?;
+  }
+
+  /// Update metadata for existing cache entry
+  static Future<void> setMetadata(
+      String key, String metaKey, String value) async {
+    final entry = get(key);
+    if (entry == null) return;
+
+    final metadata = (entry['metadata'] as Map<String, dynamic>? ?? {});
+    metadata[metaKey] = value;
+
+    await _p.setString(
+        key,
+        jsonEncode({
+          ...entry,
+          'metadata': metadata,
+        }));
   }
 
   static bool isExpired(String key, Duration ttl) {

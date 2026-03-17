@@ -1,55 +1,126 @@
+-- =============================================================================
 -- cron_setup.sql
--- EZ2 fetch-today cron jobs
--- Fire every 5 minutes during each draw window (2PM / 5PM / 9PM PHT)
--- PHT = UTC+8, so subtract 8 hours for UTC cron times
+-- EZ2 Lotto - fetch-today cron jobs setup
+-- =============================================================================
+-- Schedule: Fire every 5 minutes during each draw window (2PM / 5PM / 9PM PHT)
+-- PHT (Philippine Time) = UTC+8, so subtract 8 hours for UTC cron times
 -- Draw window: draw time → +35 min (sites publish within 5–30 min)
+-- Combo fetch: 20, 25, 30, 35 minutes after draw (4 jobs)
+-- Winners fetch: 1 hour after draw (1 job at :00)
+-- =============================================================================
 
--- Remove old jobs first
-SELECT cron.unschedule('ez2-fetch-2pm-1');
-SELECT cron.unschedule('ez2-fetch-2pm-2');
-SELECT cron.unschedule('ez2-fetch-2pm-3');
-SELECT cron.unschedule('ez2-fetch-2pm-4');
-SELECT cron.unschedule('ez2-fetch-2pm-5');
-SELECT cron.unschedule('ez2-fetch-2pm-6');
-SELECT cron.unschedule('ez2-fetch-2pm-7');
-SELECT cron.unschedule('ez2-fetch-5pm-1');
-SELECT cron.unschedule('ez2-fetch-5pm-2');
-SELECT cron.unschedule('ez2-fetch-5pm-3');
-SELECT cron.unschedule('ez2-fetch-5pm-4');
-SELECT cron.unschedule('ez2-fetch-5pm-5');
-SELECT cron.unschedule('ez2-fetch-5pm-6');
-SELECT cron.unschedule('ez2-fetch-5pm-7');
-SELECT cron.unschedule('ez2-fetch-9pm-1');
-SELECT cron.unschedule('ez2-fetch-9pm-2');
-SELECT cron.unschedule('ez2-fetch-9pm-3');
-SELECT cron.unschedule('ez2-fetch-9pm-4');
-SELECT cron.unschedule('ez2-fetch-9pm-5');
-SELECT cron.unschedule('ez2-fetch-9pm-6');
-SELECT cron.unschedule('ez2-fetch-9pm-7');
+BEGIN;
 
--- ── 2PM PHT draw (6:00 UTC) — fire at :00, :05, :10, :15, :20, :25, :30, :35 ──
-SELECT cron.schedule('ez2-fetch-2pm-1', '0 6 * * *',    $$SELECT net.http_post(url:=current_setting('app.supabase_url') || '/functions/v1/fetch-today', headers:='{"Authorization":"Bearer " || current_setting(''app.service_role_key'')}'::jsonb, body:='{}'::jsonb)$$);
-SELECT cron.schedule('ez2-fetch-2pm-2', '5 6 * * *',    $$SELECT net.http_post(url:=current_setting('app.supabase_url') || '/functions/v1/fetch-today', headers:='{"Authorization":"Bearer " || current_setting(''app.service_role_key'')}'::jsonb, body:='{}'::jsonb)$$);
-SELECT cron.schedule('ez2-fetch-2pm-3', '10 6 * * *',   $$SELECT net.http_post(url:=current_setting('app.supabase_url') || '/functions/v1/fetch-today', headers:='{"Authorization":"Bearer " || current_setting(''app.service_role_key'')}'::jsonb, body:='{}'::jsonb)$$);
-SELECT cron.schedule('ez2-fetch-2pm-4', '15 6 * * *',   $$SELECT net.http_post(url:=current_setting('app.supabase_url') || '/functions/v1/fetch-today', headers:='{"Authorization":"Bearer " || current_setting(''app.service_role_key'')}'::jsonb, body:='{}'::jsonb)$$);
-SELECT cron.schedule('ez2-fetch-2pm-5', '20 6 * * *',   $$SELECT net.http_post(url:=current_setting('app.supabase_url') || '/functions/v1/fetch-today', headers:='{"Authorization":"Bearer " || current_setting(''app.service_role_key'')}'::jsonb, body:='{}'::jsonb)$$);
-SELECT cron.schedule('ez2-fetch-2pm-6', '25 6 * * *',   $$SELECT net.http_post(url:=current_setting('app.supabase_url') || '/functions/v1/fetch-today', headers:='{"Authorization":"Bearer " || current_setting(''app.service_role_key'')}'::jsonb, body:='{}'::jsonb)$$);
-SELECT cron.schedule('ez2-fetch-2pm-7', '30 6 * * *',   $$SELECT net.http_post(url:=current_setting('app.supabase_url') || '/functions/v1/fetch-today', headers:='{"Authorization":"Bearer " || current_setting(''app.service_role_key'')}'::jsonb, body:='{}'::jsonb)$$);
+-- =============================================================================
+-- STEP 1: Create helper function to reduce code duplication
+-- =============================================================================
+CREATE OR REPLACE FUNCTION ez2_fetch_today()
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_url TEXT;
+    v_headers JSONB;
+    v_body JSONB := '{}'::jsonb;
+    v_response RECORD;
+BEGIN
+    -- Build URL and headers once
+    v_url := current_setting('app.supabase_url', true) || '/functions/v1/fetch-today';
+    v_headers := (
+        'Authorization'::TEXT,
+        'Bearer ' || current_setting('app.service_role_key', true)
+    )::JSONB;
 
--- ── 5PM PHT draw (9:00 UTC) — fire at :00, :05, :10, :15, :20, :25, :30, :35 ──
-SELECT cron.schedule('ez2-fetch-5pm-1', '0 9 * * *',    $$SELECT net.http_post(url:=current_setting('app.supabase_url') || '/functions/v1/fetch-today', headers:='{"Authorization":"Bearer " || current_setting(''app.service_role_key'')}'::jsonb, body:='{}'::jsonb)$$);
-SELECT cron.schedule('ez2-fetch-5pm-2', '5 9 * * *',    $$SELECT net.http_post(url:=current_setting('app.supabase_url') || '/functions/v1/fetch-today', headers:='{"Authorization":"Bearer " || current_setting(''app.service_role_key'')}'::jsonb, body:='{}'::jsonb)$$);
-SELECT cron.schedule('ez2-fetch-5pm-3', '10 9 * * *',   $$SELECT net.http_post(url:=current_setting('app.supabase_url') || '/functions/v1/fetch-today', headers:='{"Authorization":"Bearer " || current_setting(''app.service_role_key'')}'::jsonb, body:='{}'::jsonb)$$);
-SELECT cron.schedule('ez2-fetch-5pm-4', '15 9 * * *',   $$SELECT net.http_post(url:=current_setting('app.supabase_url') || '/functions/v1/fetch-today', headers:='{"Authorization":"Bearer " || current_setting(''app.service_role_key'')}'::jsonb, body:='{}'::jsonb)$$);
-SELECT cron.schedule('ez2-fetch-5pm-5', '20 9 * * *',   $$SELECT net.http_post(url:=current_setting('app.supabase_url') || '/functions/v1/fetch-today', headers:='{"Authorization":"Bearer " || current_setting(''app.service_role_key'')}'::jsonb, body:='{}'::jsonb)$$);
-SELECT cron.schedule('ez2-fetch-5pm-6', '25 9 * * *',   $$SELECT net.http_post(url:=current_setting('app.supabase_url') || '/functions/v1/fetch-today', headers:='{"Authorization":"Bearer " || current_setting(''app.service_role_key'')}'::jsonb, body:='{}'::jsonb)$$);
-SELECT cron.schedule('ez2-fetch-5pm-7', '30 9 * * *',   $$SELECT net.http_post(url:=current_setting('app.supabase_url') || '/functions/v1/fetch-today', headers:='{"Authorization":"Bearer " || current_setting(''app.service_role_key'')}'::jsonb, body:='{}'::jsonb)$$);
+    -- Execute HTTP POST with error handling
+    PERFORM net.http_post(
+        url := v_url,
+        headers := v_headers,
+        body := v_body
+    );
 
--- ── 9PM PHT draw (13:00 UTC) — fire at :00, :05, :10, :15, :20, :25, :30, :35 ──
-SELECT cron.schedule('ez2-fetch-9pm-1', '0 13 * * *',   $$SELECT net.http_post(url:=current_setting('app.supabase_url') || '/functions/v1/fetch-today', headers:='{"Authorization":"Bearer " || current_setting(''app.service_role_key'')}'::jsonb, body:='{}'::jsonb)$$);
-SELECT cron.schedule('ez2-fetch-9pm-2', '5 13 * * *',   $$SELECT net.http_post(url:=current_setting('app.supabase_url') || '/functions/v1/fetch-today', headers:='{"Authorization":"Bearer " || current_setting(''app.service_role_key'')}'::jsonb, body:='{}'::jsonb)$$);
-SELECT cron.schedule('ez2-fetch-9pm-3', '10 13 * * *',  $$SELECT net.http_post(url:=current_setting('app.supabase_url') || '/functions/v1/fetch-today', headers:='{"Authorization":"Bearer " || current_setting(''app.service_role_key'')}'::jsonb, body:='{}'::jsonb)$$);
-SELECT cron.schedule('ez2-fetch-9pm-4', '15 13 * * *',  $$SELECT net.http_post(url:=current_setting('app.supabase_url') || '/functions/v1/fetch-today', headers:='{"Authorization":"Bearer " || current_setting(''app.service_role_key'')}'::jsonb, body:='{}'::jsonb)$$);
-SELECT cron.schedule('ez2-fetch-9pm-5', '20 13 * * *',  $$SELECT net.http_post(url:=current_setting('app.supabase_url') || '/functions/v1/fetch-today', headers:='{"Authorization":"Bearer " || current_setting(''app.service_role_key'')}'::jsonb, body:='{}'::jsonb)$$);
-SELECT cron.schedule('ez2-fetch-9pm-6', '25 13 * * *',  $$SELECT net.http_post(url:=current_setting('app.supabase_url') || '/functions/v1/fetch-today', headers:='{"Authorization":"Bearer " || current_setting(''app.service_role_key'')}'::jsonb, body:='{}'::jsonb)$$);
-SELECT cron.schedule('ez2-fetch-9pm-7', '30 13 * * *',  $$SELECT net.http_post(url:=current_setting('app.supabase_url') || '/functions/v1/fetch-today', headers:='{"Authorization":"Bearer " || current_setting(''app.service_role_key'')}'::jsonb, body:='{}'::jsonb)$$);
+    RAISE NOTICE 'EZ2 fetch-today executed successfully at %', now();
+
+EXCEPTION
+    WHEN OTHERS THEN
+        -- Log error but don't fail the cron job
+        RAISE WARNING 'EZ2 fetch-today failed: % (SQLSTATE: %)', SQLERRM, SQLSTATE;
+END;
+$$;
+
+-- =============================================================================
+-- STEP 2: Helper function to unschedule job safely (idempotent)
+-- =============================================================================
+CREATE OR REPLACE FUNCTION safe_unschedule(job_name TEXT)
+RETURNS void
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    -- Try to unschedule - will silently fail if job doesn't exist
+    PERFORM cron.unschedule(job_name);
+EXCEPTION
+    WHEN OTHERS THEN
+        -- Ignore errors - job might not exist
+        NULL;
+END;
+$$;
+
+COMMIT;
+
+-- =============================================================================
+-- STEP 3: Clean up old jobs (using safe unschedule for idempotency)
+-- =============================================================================
+SELECT safe_unschedule('ez2-fetch-2pm-1');
+SELECT safe_unschedule('ez2-fetch-2pm-2');
+SELECT safe_unschedule('ez2-fetch-2pm-3');
+SELECT safe_unschedule('ez2-fetch-2pm-4');
+SELECT safe_unschedule('ez2-fetch-2pm-5');
+SELECT safe_unschedule('ez2-fetch-2pm-6');
+SELECT safe_unschedule('ez2-fetch-2pm-7');
+SELECT safe_unschedule('ez2-fetch-2pm-8');
+SELECT safe_unschedule('ez2-fetch-5pm-1');
+SELECT safe_unschedule('ez2-fetch-5pm-2');
+SELECT safe_unschedule('ez2-fetch-5pm-3');
+SELECT safe_unschedule('ez2-fetch-5pm-4');
+SELECT safe_unschedule('ez2-fetch-5pm-5');
+SELECT safe_unschedule('ez2-fetch-5pm-6');
+SELECT safe_unschedule('ez2-fetch-5pm-7');
+SELECT safe_unschedule('ez2-fetch-5pm-8');
+SELECT safe_unschedule('ez2-fetch-9pm-1');
+SELECT safe_unschedule('ez2-fetch-9pm-2');
+SELECT safe_unschedule('ez2-fetch-9pm-3');
+SELECT safe_unschedule('ez2-fetch-9pm-4');
+SELECT safe_unschedule('ez2-fetch-9pm-5');
+SELECT safe_unschedule('ez2-fetch-9pm-6');
+SELECT safe_unschedule('ez2-fetch-9pm-7');
+SELECT safe_unschedule('ez2-fetch-9pm-8');
+
+-- =============================================================================
+-- STEP 4: Schedule cron jobs
+-- =============================================================================
+-- 2PM PHT draw (6:00 UTC) 
+-- +20-35 min for combo → fire at 6:20, 6:25, 6:30, 6:35 UTC
+-- +60 min for winners → fire at 7:00 UTC
+SELECT cron.schedule('ez2-fetch-2pm-1', '20 6 * * *',  'SELECT ez2_fetch_today()');
+SELECT cron.schedule('ez2-fetch-2pm-2', '25 6 * * *',  'SELECT ez2_fetch_today()');
+SELECT cron.schedule('ez2-fetch-2pm-3', '30 6 * * *', 'SELECT ez2_fetch_today()');
+SELECT cron.schedule('ez2-fetch-2pm-4', '35 6 * * *', 'SELECT ez2_fetch_today()');
+SELECT cron.schedule('ez2-fetch-2pm-5', '0 7 * * *',  'SELECT ez2_fetch_today()');
+
+-- 5PM PHT draw (9:00 UTC)
+-- +20-35 min for combo → fire at 9:20, 9:25, 9:30, 9:35 UTC
+-- +60 min for winners → fire at 10:00 UTC
+SELECT cron.schedule('ez2-fetch-5pm-1', '20 9 * * *',  'SELECT ez2_fetch_today()');
+SELECT cron.schedule('ez2-fetch-5pm-2', '25 9 * * *',  'SELECT ez2_fetch_today()');
+SELECT cron.schedule('ez2-fetch-5pm-3', '30 9 * * *', 'SELECT ez2_fetch_today()');
+SELECT cron.schedule('ez2-fetch-5pm-4', '35 9 * * *', 'SELECT ez2_fetch_today()');
+SELECT cron.schedule('ez2-fetch-5pm-5', '0 10 * * *',  'SELECT ez2_fetch_today()');
+
+-- 9PM PHT draw (13:00 UTC)
+-- +20-35 min for combo → fire at 13:20, 13:25, 13:30, 13:35 UTC
+-- +60 min for winners → fire at 14:00 UTC
+SELECT cron.schedule('ez2-fetch-9pm-1', '20 13 * * *', 'SELECT ez2_fetch_today()');
+SELECT cron.schedule('ez2-fetch-9pm-2', '25 13 * * *', 'SELECT ez2_fetch_today()');
+SELECT cron.schedule('ez2-fetch-9pm-3', '30 13 * * *','SELECT ez2_fetch_today()');
+SELECT cron.schedule('ez2-fetch-9pm-4', '35 13 * * *','SELECT ez2_fetch_today()');
+SELECT cron.schedule('ez2-fetch-9pm-5', '0 14 * * *', 'SELECT ez2_fetch_today()');

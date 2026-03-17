@@ -2,6 +2,8 @@
 
 **EZ2 Lotto** is a Flutter application that provides real-time result tracking, historical archives, statistical insights, and ticket checking for the Philippine EZ2 (2D Lotto) game.
 
+**Version:** `1.0.1`
+
 ## 🚀 Key Features
 
 - **Live draw results (2PM / 5PM / 9PM)** with real-time updates via Supabase Realtime.

@@ -1,0 +1,6 @@
+services:
+  ez2lotto:
+    image: ez2lotto
+    build:
+      context: .
+      dockerfile: ./Dockerfile

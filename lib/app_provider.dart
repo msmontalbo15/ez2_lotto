@@ -5,6 +5,7 @@ import 'repository.dart';
 import 'cache_service.dart';
 import 'helpers.dart';
 import 'models.dart';
+import 'connectivity_service.dart';
 
 // Parses "Mar 17, 2026" → DateTime for correct chronological sorting
 DateTime _parseShortDate(String d) {
@@ -35,6 +36,7 @@ DateTime _parseShortDate(String d) {
 
 class AppProvider extends ChangeNotifier {
   final _repo = EZ2Repository.instance;
+  final _connectivity = ConnectivityService.instance;
 
   // ── Today ─────────────────────────────────────────────────
   DayResult? _todayResult;
@@ -86,6 +88,7 @@ class AppProvider extends ChangeNotifier {
   StreamSubscription<DayResult>? _todaySub;
   StreamSubscription<MonthUpdate>? _monthSub;
   StreamSubscription<String>? _errorSub;
+  StreamSubscription<bool>? _connectivitySub;
   Timer? _smartRefreshTimer;
   Timer? _midnightTimer;
 
@@ -111,6 +114,19 @@ class AppProvider extends ChangeNotifier {
       _isRefreshing = false;
       if (err == 'offline') _isOffline = true;
       notifyListeners();
+    });
+
+    // Listen for connectivity changes to auto-refresh when back online
+    _connectivitySub = _connectivity.onConnectivityChanged.listen((isOnline) {
+      if (isOnline) {
+        // Connection restored - refresh data
+        _isOffline = false;
+        notifyListeners();
+        _refreshWhenBackOnline();
+      } else {
+        _isOffline = true;
+        notifyListeners();
+      }
     });
 
     _repo.subscribeRealtime();
@@ -156,6 +172,22 @@ class AppProvider extends ChangeNotifier {
       debugPrint('[AppProvider] Initial fetch error: $e');
       _isRefreshing = false;
       _isOffline = true;
+      notifyListeners();
+    });
+  }
+
+  /// Refresh data when connectivity is restored
+  void _refreshWhenBackOnline() {
+    // Prevent concurrent refreshes
+    if (_isRefreshing) return;
+    _isRefreshing = true;
+    notifyListeners();
+    _repo.loadAll(monthCount: 3).then((_) {
+      _isRefreshing = false;
+      _isOffline = false;
+      notifyListeners();
+    }).catchError((_) {
+      _isRefreshing = false;
       notifyListeners();
     });
   }
@@ -237,6 +269,7 @@ class AppProvider extends ChangeNotifier {
     _todaySub?.cancel();
     _monthSub?.cancel();
     _errorSub?.cancel();
+    _connectivitySub?.cancel();
     _smartRefreshTimer?.cancel();
     _midnightTimer?.cancel();
     _repo.dispose();
