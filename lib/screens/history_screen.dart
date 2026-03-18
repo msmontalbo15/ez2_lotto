@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../app_provider.dart';
 import '../helpers.dart';
 import '../models.dart';
+import '../responsive.dart';
 
 // Parses "Mar 17, 2026" → DateTime for correct chronological sorting
 DateTime _parseDate(String d) {
@@ -56,6 +57,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     final prov = context.watch<AppProvider>();
     final months = prov.availableMonths;
     final mk = prov.selectedMonth;
@@ -108,7 +111,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F0E8),
+      backgroundColor:
+          isDarkMode ? const Color(0xFF121212) : const Color(0xFFF5F0E8),
       body: SafeArea(
         child: Column(children: [
           // ── Header ─────────────────────────────────────
@@ -118,16 +122,21 @@ class _HistoryScreenState extends State<HistoryScreen> {
               color: Color(0xFF1A5276),
               borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
             ),
-            padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+            padding: EdgeInsets.fromLTRB(
+              context.horizontalPadding,
+              context.headerPaddingTop,
+              context.horizontalPadding,
+              24,
+            ),
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('KASAYSAYAN',
+              Text('HISTORY',
                   style: TextStyle(
                       color: Colors.white,
-                      fontSize: 28,
+                      fontSize: context.titleFontSize,
                       fontWeight: FontWeight.w900)),
               const SizedBox(height: 4),
-              Text('Mga nakaraang resulta ng EZ2',
+              Text('Previous EZ2 results',
                   style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.75),
                       fontSize: 16)),
@@ -176,15 +185,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
           // ── Column headers ──────────────────────────────
           Container(
-            margin: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+            margin: EdgeInsets.fromLTRB(
+                context.horizontalPadding, 14, context.horizontalPadding, 0),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
                 color: const Color(0xFF1A5276),
                 borderRadius: BorderRadius.circular(12)),
-            child: const Row(children: [
+            child: Row(children: [
               SizedBox(
-                  width: 72,
-                  child: Text('DATE',
+                  width: context.isSmallPhone ? 52 : 72,
+                  child: const Text('DATE',
                       style: TextStyle(
                           color: Colors.white,
                           fontSize: 12,
@@ -221,12 +231,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 : visible.isEmpty
                     ? _EmptyState(onRetry: () => prov.fetchMonth(mk))
                     : ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                        padding: EdgeInsets.fromLTRB(context.horizontalPadding,
+                            8, context.horizontalPadding, 24),
                         itemCount: visible.length,
                         itemBuilder: (ctx, i) {
                           final r = visible[i];
                           final isToday = r.date == todayDate;
-                          return _HistoryRow(row: r, isToday: isToday);
+                          return _HistoryRow(
+                              row: r, isToday: isToday, isDarkMode: isDarkMode);
                         },
                       ),
           ),
@@ -275,17 +287,23 @@ class _HistoryScreenState extends State<HistoryScreen> {
 class _HistoryRow extends StatelessWidget {
   final DayResult row;
   final bool isToday;
-  const _HistoryRow({required this.row, required this.isToday});
+  final bool isDarkMode;
+  const _HistoryRow(
+      {required this.row, required this.isToday, required this.isDarkMode});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: isToday ? const Color(0xFFFFF8E1) : Colors.white,
+        color: isDarkMode
+            ? (isToday ? const Color(0xFF2C2C2C) : const Color(0xFF1E1E1E))
+            : (isToday ? const Color(0xFFFFF8E1) : Colors.white),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isToday ? const Color(0xFFFFCA2C) : Colors.grey.shade200,
+          color: isToday
+              ? const Color(0xFFFFCA2C)
+              : (isDarkMode ? Colors.grey.shade800 : Colors.grey.shade200),
           width: isToday ? 2 : 1,
         ),
         boxShadow: [
@@ -427,9 +445,10 @@ class _Ball extends StatelessWidget {
   const _Ball({required this.n, required this.color});
   @override
   Widget build(BuildContext context) {
+    final size = context.lottoBallSize(baseSize: 32.0);
     return Container(
-      width: 32,
-      height: 32,
+      width: size,
+      height: size,
       decoration:
           BoxDecoration(shape: BoxShape.circle, color: color, boxShadow: [
         BoxShadow(
@@ -439,8 +458,8 @@ class _Ball extends StatelessWidget {
       ]),
       child: Center(
           child: Text(n,
-              style: const TextStyle(
-                  fontSize: 13,
+              style: TextStyle(
+                  fontSize: size * 0.4,
                   fontWeight: FontWeight.w900,
                   color: Colors.white))),
     );

@@ -89,6 +89,16 @@ class CacheService {
   static Future<void> delete(String key) async => _p.remove(key);
   static bool has(String key) => _p.containsKey(key);
 
+  /// Clear all cached data
+  static Future<void> clearAll() async {
+    final keys = _p.getKeys();
+    for (final key in keys) {
+      if (key.startsWith('ez2_')) {
+        await _p.remove(key);
+      }
+    }
+  }
+
   // ── Key builders ──────────────────────────────────────────
   static String todayKey(String isoDate) => 'ez2_today:$isoDate';
   static String monthKey(String mk) => 'ez2_month:$mk';

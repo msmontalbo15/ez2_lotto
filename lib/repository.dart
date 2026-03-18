@@ -170,37 +170,71 @@ class EZ2Repository {
     return false;
   }
 
-  bool _shouldScrape(DayResult r, DateTime ph) {
-    // Scrape during draw window OR if results/winners are still missing after draw time
+  /// Check if we're at a scheduled fetch time (20, 25, 30 min after draw)
+  /// Returns the draw slot if it's time to fetch, null otherwise
+  String? _getScheduledFetchSlot(DateTime ph) {
     final mins = ph.hour * 60 + ph.minute;
-    // Active windows: draw time → 35 min after
-    final in2pm = mins >= 840 && mins <= 875; // 2:00PM–2:35PM
-    final in5pm = mins >= 1020 && mins <= 1055; // 5:00PM–5:35PM
-    final in9pm = mins >= 1260 && mins <= 1295; // 9:00PM–9:35PM
-    if (in2pm && r.result2pm == null) return true;
-    if (in5pm && r.result5pm == null) return true;
-    if (in9pm && r.result9pm == null) return true;
-    // Also scrape if combo exists but winners still missing (sites may update later)
-    if (in2pm && r.result2pm != null && r.winners2pm == null) return true;
-    if (in5pm && r.result5pm != null && r.winners5pm == null) return true;
-    if (in9pm && r.result9pm != null && r.winners9pm == null) return true;
-    // After window: if result is missing entirely for a past draw, still try once
+
+    // 2PM draw window: fetch at 2:20, 2:25, 2:30 (840 + 20, 25, 30)
+    if (mins >= 860 && mins <= 870) return '2pm'; // 2:20PM – 2:30PM
+
+    // 5PM draw window: fetch at 5:20, 5:25, 5:30 (1020 + 20, 25, 30)
+    if (mins >= 1040 && mins <= 1050) return '5pm'; // 5:20PM – 5:30PM
+
+    // 9PM draw window: fetch at 9:20, 9:25, 9:30 (1260 + 20, 25, 30)
+    if (mins >= 1280 && mins <= 1290) return '9pm'; // 9:20PM – 9:30PM
+
+    return null;
+  }
+
+  bool _shouldScrape(DayResult r, DateTime ph) {
+    // Scrape during draw window for combo results only
+    // Winners are only fetched after the end of the day (after 9:35 PM)
+    // Schedule: Fire at 20, 25, 30 minutes after each draw (3 jobs per draw)
+
+    final scheduledSlot = _getScheduledFetchSlot(ph);
+
+    // Only fetch during scheduled times (20, 25, 30 min after draw)
+    if (scheduledSlot != null) {
+      if (scheduledSlot == '2pm' && r.result2pm == null) return true;
+      if (scheduledSlot == '5pm' && r.result5pm == null) return true;
+      if (scheduledSlot == '9pm' && r.result9pm == null) return true;
+      return false;
+    }
+
+    // Fallback: if combo is missing entirely for a past draw, still try once
+    final mins = ph.hour * 60 + ph.minute;
     if (mins > 875 && r.result2pm == null) return true;
     if (mins > 1055 && r.result5pm == null) return true;
     if (mins > 1295 && r.result9pm == null) return true;
-    // After window: if winners still null for a past draw, retry until midnight
-    if (mins >= 14 * 60 + 35 && r.result2pm != null && r.winners2pm == null)
-      return true;
-    if (mins >= 17 * 60 + 15 && r.result5pm != null && r.winners5pm == null)
-      return true;
-    if (mins >= 21 * 60 + 15 && r.result9pm != null && r.winners9pm == null)
-      return true;
+
+    // Winners: only fetch after end of day (after 9:35 PM = 1295 minutes)
+    // This means after the 9PM draw window closes
+    final isEndOfDay = mins > 1295;
+    if (isEndOfDay && r.result2pm != null && r.winners2pm == null) return true;
+    if (isEndOfDay && r.result5pm != null && r.winners5pm == null) return true;
+    if (isEndOfDay && r.result9pm != null && r.winners9pm == null) return true;
+
     return false;
   }
 
   Future<void> _scrapeInBackgroundWithData(String iso, DateTime ph,
       String cacheKey, List<Map<String, dynamic>> existingRows) async {
     try {
+      // Check if all combos already exist for today - stop fetch if they do
+      final has2pm = existingRows
+          .any((r) => r['draw_slot'] == '2pm' && r['combo'] != null);
+      final has5pm = existingRows
+          .any((r) => r['draw_slot'] == '5pm' && r['combo'] != null);
+      final has9pm = existingRows
+          .any((r) => r['draw_slot'] == '9pm' && r['combo'] != null);
+
+      if (has2pm && has5pm && has9pm) {
+        debugPrint(
+            '[Repo] All combos already exist in database, skipping fetch');
+        return; // Stop - don't call triggerFetchToday()
+      }
+
       final newSlots = await ApiService.triggerFetchToday();
       if (newSlots.isNotEmpty) {
         // Use existing rows instead of re-fetching from network

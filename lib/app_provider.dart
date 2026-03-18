@@ -194,9 +194,9 @@ class AppProvider extends ChangeNotifier {
 
   void _startSmartTimer() {
     _smartRefreshTimer?.cancel();
-    // Poll every 5 seconds during draw window (sites publish within 5–30 min)
-    // Poll every 60 seconds otherwise (Realtime handles instant updates)
-    _smartRefreshTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+    // Poll every 5 minutes during draw window (2PM / 5PM / 9PM PHT)
+    // Sites publish combo results within 5-30 minutes after draw
+    _smartRefreshTimer = Timer.periodic(const Duration(minutes: 5), (_) {
       final ph = getPHTime();
       if (_isInDrawWindow(ph)) {
         _repo.loadToday(forceNetwork: true);

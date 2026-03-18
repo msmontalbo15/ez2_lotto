@@ -17,6 +17,13 @@ const DRAW_SLOTS = {
   "9pm": { start: 1260, end: 1295 },
 } as const;
 
+// Scheduled fetch times: 20, 25, 30 minutes after draw (3 jobs per draw)
+const SCHEDULED_FETCH_SLOTS = {
+  "2pm": { start: 860, end: 870 }, // 2:20 PM – 2:30 PM
+  "5pm": { start: 1040, end: 1050 }, // 5:20 PM – 5:30 PM
+  "9pm": { start: 1280, end: 1290 }, // 9:20 PM – 9:30 PM
+} as const;
+
 // Pre-compiled regex patterns for better performance
 const REGEX = {
   // Match row with time and combo: <tr>...<td>2:00 PM</td><td>01-02</td>...
@@ -59,6 +66,23 @@ function isInDrawWindow(phMinOfDay: number): boolean {
   return Object.values(DRAW_SLOTS).some(
     slot => phMinOfDay >= slot.start && phMinOfDay <= slot.end
   );
+}
+
+/**
+ * Check if current time is within scheduled fetch window (20, 25, 30 min after draw)
+ * Returns the draw slot if within scheduled window, null otherwise
+ */
+function getScheduledFetchSlot(phMinOfDay: number): string | null {
+  if (phMinOfDay >= SCHEDULED_FETCH_SLOTS["2pm"].start && phMinOfDay <= SCHEDULED_FETCH_SLOTS["2pm"].end) {
+    return "2pm";
+  }
+  if (phMinOfDay >= SCHEDULED_FETCH_SLOTS["5pm"].start && phMinOfDay <= SCHEDULED_FETCH_SLOTS["5pm"].end) {
+    return "5pm";
+  }
+  if (phMinOfDay >= SCHEDULED_FETCH_SLOTS["9pm"].start && phMinOfDay <= SCHEDULED_FETCH_SLOTS["9pm"].end) {
+    return "9pm";
+  }
+  return null;
 }
 
 /**
@@ -145,9 +169,43 @@ serve(async (req: Request) => {
 
     // Determine which slots need work
     const slots = ["2pm", "5pm", "9pm"] as const;
-    const needsCombo = slots.filter(s => !db.get(s)?.combo);
-    const needsWinners = slots.filter(s => db.get(s)?.combo && db.get(s)?.winners == null);
+    
+    // Check if we're in a scheduled fetch window (20, 25, 30 min after draw)
+    const scheduledSlot = getScheduledFetchSlot(phMinOfDay);
+    
+    // During scheduled fetch windows: only fetch for that specific slot
+    // Outside scheduled windows: fetch for all missing slots (fallback)
+    let needsCombo: readonly string[];
+    if (scheduledSlot) {
+      // Only check the scheduled slot during 20, 25, 30 min after draw
+      needsCombo = !db.get(scheduledSlot)?.combo ? [scheduledSlot] : [];
+    } else {
+      // Fallback: check all slots (for missed schedules or corrections)
+      needsCombo = slots.filter(s => !db.get(s)?.combo);
+    }
+    
+    // Winners: only fetch after end of day (after 9:35 PM PHT = 1295 minutes)
+    const isEndOfDay = phMinOfDay > 1295;
+    const needsWinners = isEndOfDay 
+      ? slots.filter(s => db.get(s)?.combo && db.get(s)?.winners == null)
+      : []; // Don't fetch winners during draw window
+    
     const nothingToDo = needsCombo.length === 0 && needsWinners.length === 0;
+
+    // ── STOP FETCH if all combos already exist in database ────────────────────────
+    if (needsCombo.length === 0) {
+      console.log(`[fetch-today] ${iso}: All combos already exist in database, skipping fetch`);
+      // Still check for winners if end of day
+      if (needsWinners.length === 0) {
+        return corsResponse({ 
+          message: "Already complete - all combos exist", 
+          date: iso, 
+          inWindow,
+          scheduledSlot,
+          needsWinners: isEndOfDay ? [] : "waiting for end of day"
+        });
+      }
+    }
 
     // Skip if nothing is missing AND outside draw window (optimization)
     if (nothingToDo && !inWindow) {
@@ -237,7 +295,7 @@ serve(async (req: Request) => {
       }
     }
 
-    console.log(`[fetch-today] ${iso}: inWindow=${inWindow}, needsCombo=${needsCombo}, needsWinners=${needsWinners}`);
+    console.log(`[fetch-today] ${iso}: inWindow=${inWindow}, scheduledSlot=${scheduledSlot}, isEndOfDay=${isEndOfDay}, needsCombo=${needsCombo}, needsWinners=${needsWinners}`);
     console.log(`[fetch-today] Scraped:`, JSON.stringify(scraped));
 
     // ── Save to DB ───────────────────────────────────────────────────────
@@ -331,6 +389,7 @@ serve(async (req: Request) => {
       message: "OK", 
       date: iso, 
       inWindow, 
+      scheduledSlot,
       saved, 
       scraped: Object.keys(scraped),
       db: Object.fromEntries(db)

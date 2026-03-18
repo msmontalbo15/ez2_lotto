@@ -45,6 +45,6 @@ flutter_native_splash:
   color: "#FFFFFF"
   image: assets/icon/app_icon.png
   android_12:
-    image: assets/icon/app_icon_foreground.png
+    image: assets/icon/app_icon.png
     icon_background_color: "#FFFFFF"
-  fullscreen: true
+  fullscreen: false

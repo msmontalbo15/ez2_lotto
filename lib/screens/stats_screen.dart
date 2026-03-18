@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../app_provider.dart';
 import '../helpers.dart';
 import '../models.dart';
+import '../responsive.dart';
 
 class StatsScreen extends StatefulWidget {
   const StatsScreen({super.key});
@@ -17,12 +18,15 @@ class _StatsScreenState extends State<StatsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     final prov = context.watch<AppProvider>();
     final allRows = prov.allHistoryRows;
     final stats = allRows.isEmpty ? null : computeStats(allRows);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F0E8),
+      backgroundColor:
+          isDarkMode ? const Color(0xFF121212) : const Color(0xFFF5F0E8),
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
@@ -35,14 +39,19 @@ class _StatsScreenState extends State<StatsScreen> {
                   borderRadius:
                       BorderRadius.vertical(bottom: Radius.circular(28)),
                 ),
-                padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
+                padding: EdgeInsets.fromLTRB(
+                  context.horizontalPadding,
+                  context.headerPaddingTop,
+                  context.horizontalPadding,
+                  28,
+                ),
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('ISTATISTIKA',
+                      Text('STATISTICS',
                           style: TextStyle(
                               color: Colors.white,
-                              fontSize: 28,
+                              fontSize: context.titleFontSize,
                               fontWeight: FontWeight.w900)),
                       const SizedBox(height: 4),
                       Text('Statistics from ${allRows.length} draw results',
@@ -54,7 +63,8 @@ class _StatsScreenState extends State<StatsScreen> {
             ),
 
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              padding: EdgeInsets.fromLTRB(
+                  context.horizontalPadding, 16, context.horizontalPadding, 24),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
                   if (stats == null)
@@ -134,6 +144,7 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
         Container(
@@ -153,7 +164,10 @@ class _SectionHeader extends StatelessWidget {
       Padding(
         padding: const EdgeInsets.only(left: 38),
         child: Text(sub,
-            style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
+            style: TextStyle(
+                fontSize: 13,
+                color:
+                    isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600)),
       ),
     ]);
   }
@@ -189,16 +203,21 @@ class _MostDrawnNumbersTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
+    final rowColor = isDarkMode ? const Color(0xFF2C2C2C) : Colors.grey.shade50;
+
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(
+            color: isDarkMode ? const Color(0xFF3E3E3E) : Colors.grey.shade200),
       ),
       child: Column(children: [
         _TableHeader(
           color: const Color(0xFF1A5276),
-          children: const ['No.', 'Numbers', 'Hits', 'Last seen'],
+          children: const ['#', 'Numbers', 'Hits', 'Last Seen'],
           widths: const [36, 0, 48, 0],
         ),
         ...combos.asMap().entries.map((e) {
@@ -210,8 +229,12 @@ class _MostDrawnNumbersTable extends StatelessWidget {
           return Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: i.isEven ? Colors.grey.shade50 : Colors.white,
-              border: Border(top: BorderSide(color: Colors.grey.shade100)),
+              color: i.isEven ? rowColor : cardColor,
+              border: Border(
+                  top: BorderSide(
+                      color: isDarkMode
+                          ? const Color(0xFF3E3E3E)
+                          : Colors.grey.shade100)),
             ),
             child: Row(children: [
               SizedBox(
@@ -220,7 +243,9 @@ class _MostDrawnNumbersTable extends StatelessWidget {
                       style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
-                          color: Colors.grey.shade500))),
+                          color: isDarkMode
+                              ? Colors.grey.shade400
+                              : Colors.grey.shade500))),
               Row(children: [
                 _Ball(n: n1, color: const Color(0xFF1A5276)),
                 const SizedBox(width: 4),
@@ -239,11 +264,17 @@ class _MostDrawnNumbersTable extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(c.lastDate,
-                          style: const TextStyle(
-                              fontSize: 12, color: Colors.grey)),
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: isDarkMode
+                                  ? Colors.grey.shade400
+                                  : Colors.grey)),
                       Text('(${c.daysSinceLast} days ago)',
                           style: TextStyle(
-                              fontSize: 11, color: Colors.grey.shade400)),
+                              fontSize: 11,
+                              color: isDarkMode
+                                  ? Colors.grey.shade600
+                                  : Colors.grey.shade400)),
                     ]),
               ),
             ]),
@@ -261,15 +292,21 @@ class _MostDrawnPairsTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
+    final rowColor = isDarkMode ? const Color(0xFF2C2C2C) : Colors.grey.shade50;
+
     return Container(
       decoration: BoxDecoration(
-          color: Colors.white,
+          color: cardColor,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.shade200)),
+          border: Border.all(
+              color:
+                  isDarkMode ? const Color(0xFF3E3E3E) : Colors.grey.shade200)),
       child: Column(children: [
         _TableHeader(
           color: const Color(0xFF7D3C98),
-          children: const ['No.', 'Pairs', 'Draws'],
+          children: const ['#', 'Pairs', 'Draws'],
           widths: const [36, 0, 0],
         ),
         ...pairs.asMap().entries.map((e) {
@@ -279,8 +316,12 @@ class _MostDrawnPairsTable extends StatelessWidget {
           return Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
             decoration: BoxDecoration(
-              color: i.isEven ? Colors.grey.shade50 : Colors.white,
-              border: Border(top: BorderSide(color: Colors.grey.shade100)),
+              color: i.isEven ? rowColor : cardColor,
+              border: Border(
+                  top: BorderSide(
+                      color: isDarkMode
+                          ? const Color(0xFF3E3E3E)
+                          : Colors.grey.shade100)),
             ),
             child: Row(children: [
               SizedBox(
@@ -289,27 +330,37 @@ class _MostDrawnPairsTable extends StatelessWidget {
                       style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
-                          color: Colors.grey.shade500))),
+                          color: isDarkMode
+                              ? Colors.grey.shade400
+                              : Colors.grey.shade500))),
               Row(children: [
                 _Ball(n: numStr, color: const Color(0xFF1E8449), size: 38),
                 const SizedBox(width: 8),
                 Text('-',
-                    style:
-                        TextStyle(fontSize: 18, color: Colors.grey.shade400)),
+                    style: TextStyle(
+                        fontSize: 18,
+                        color: isDarkMode
+                            ? Colors.grey.shade600
+                            : Colors.grey.shade400)),
                 const SizedBox(width: 8),
                 Container(
                   width: 38,
                   height: 38,
                   decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border:
-                          Border.all(color: Colors.grey.shade300, width: 2)),
+                      border: Border.all(
+                          color: isDarkMode
+                              ? Colors.grey.shade600
+                              : Colors.grey.shade300,
+                          width: 2)),
                   child: Center(
                       child: Text('?',
                           style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
-                              color: Colors.grey.shade400))),
+                              color: isDarkMode
+                                  ? Colors.grey.shade500
+                                  : Colors.grey.shade400))),
                 ),
               ]),
               const Spacer(),
@@ -368,6 +419,9 @@ class _WinnersChartCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
+
     // Collect winner data points: one per draw slot
     final points = <_WinPoint>[];
     final recent =
@@ -386,12 +440,13 @@ class _WinnersChartCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(
+            color: isDarkMode ? const Color(0xFF3E3E3E) : Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
+              color: Colors.black.withValues(alpha: isDarkMode ? 0.3 : 0.04),
               blurRadius: 8,
               offset: const Offset(0, 2))
         ],
@@ -410,7 +465,11 @@ class _WinnersChartCard extends StatelessWidget {
                       color: Color(0xFF0E7490))),
               const SizedBox(height: 2),
               Text('Number of winners in recent games',
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+                  style: TextStyle(
+                      fontSize: 12,
+                      color: isDarkMode
+                          ? Colors.grey.shade400
+                          : Colors.grey.shade500)),
             ]),
           ),
           const SizedBox(width: 12),
@@ -428,7 +487,10 @@ class _WinnersChartCard extends StatelessWidget {
                 child: Center(
                     child: Text('No winner data yet',
                         style: TextStyle(
-                            color: Colors.grey.shade400, fontSize: 15))),
+                            color: isDarkMode
+                                ? Colors.grey.shade500
+                                : Colors.grey.shade400,
+                            fontSize: 15))),
               )
             : SizedBox(
                 height: 200,
@@ -521,7 +583,7 @@ class _LineChartPainter extends CustomPainter {
     final chartH = size.height - topPad - botPad;
 
     final maxVal = points.map((p) => p.count).reduce(math.max).toDouble();
-    final minVal = 0.0;
+    const minVal = 0.0;
     final range = maxVal - minVal == 0 ? 1.0 : maxVal - minVal;
 
     double x(int i) =>
@@ -644,11 +706,16 @@ class _HotColdSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
+
     return Container(
       decoration: BoxDecoration(
-          color: Colors.white,
+          color: cardColor,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.shade200)),
+          border: Border.all(
+              color:
+                  isDarkMode ? const Color(0xFF3E3E3E) : Colors.grey.shade200)),
       padding: const EdgeInsets.all(16),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
@@ -662,7 +729,10 @@ class _HotColdSection extends StatelessWidget {
         ]),
         const SizedBox(height: 4),
         Text('Most drawn in the last 200 EZ2 draws',
-            style: TextStyle(fontSize: 13, color: Colors.grey.shade500)),
+            style: TextStyle(
+                fontSize: 13,
+                color:
+                    isDarkMode ? Colors.grey.shade400 : Colors.grey.shade500)),
         const SizedBox(height: 12),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
@@ -684,7 +754,10 @@ class _HotColdSection extends StatelessWidget {
         ]),
         const SizedBox(height: 4),
         Text('Least drawn in the last 200 EZ2 draws',
-            style: TextStyle(fontSize: 13, color: Colors.grey.shade500)),
+            style: TextStyle(
+                fontSize: 13,
+                color:
+                    isDarkMode ? Colors.grey.shade400 : Colors.grey.shade500)),
         const SizedBox(height: 12),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
