@@ -1,16 +1,25 @@
 // lib/screens/settings_screen.dart
+<<<<<<< HEAD
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
+=======
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+>>>>>>> 040d0d8d8116ae221e5f6e6341a7441b44ce6370
 import 'package:provider/provider.dart';
 import '../app_provider.dart';
 import '../app_locale.dart';
 import '../cache_service.dart';
+<<<<<<< HEAD
 import '../constants.dart';
 import '../helpers.dart';
 import '../responsive.dart';
 import '../apk_service.dart';
+=======
+import '../responsive.dart';
+>>>>>>> 040d0d8d8116ae221e5f6e6341a7441b44ce6370
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -21,7 +30,10 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _isCheckingUpdate = false;
+<<<<<<< HEAD
   bool _isFetchingPastDraws = false;
+=======
+>>>>>>> 040d0d8d8116ae221e5f6e6341a7441b44ce6370
   String _updateStatus = '';
 
   Future<void> _checkForUpdate() async {
@@ -40,6 +52,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _shareApp() async {
+<<<<<<< HEAD
     try {
       // Get latest version info from Supabase
       final apkService = ApkService();
@@ -155,6 +168,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         );
       }
+=======
+    const shareText =
+        'EZ2 Lotto - Check PCSO EZ2 results, history, and statistics!\n'
+        'Download: https://play.google.com/store/apps/details?id=com.markspencer.ez2lotto';
+
+    await Clipboard.setData(const ClipboardData(text: shareText));
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('App link copied to clipboard!'),
+          backgroundColor: Color(0xFF27AE60),
+        ),
+      );
+>>>>>>> 040d0d8d8116ae221e5f6e6341a7441b44ce6370
     }
   }
 
@@ -396,11 +424,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         color: const Color(0xFF9B59B6),
                       ),
                       const SizedBox(height: 12),
+<<<<<<< HEAD
                       _DetailedAboutCard(
                         isDarkMode: isDarkMode,
                         onFetchPastDraws: _fetchAllPastDraws,
                         isFetchingPastDraws: _isFetchingPastDraws,
                       ),
+=======
+                      _DetailedAboutCard(isDarkMode: isDarkMode),
+>>>>>>> 040d0d8d8116ae221e5f6e6341a7441b44ce6370
                       const SizedBox(height: 24),
 
                       // App Info Footer
@@ -559,6 +591,7 @@ class _SettingsTile extends StatelessWidget {
 
 class _DetailedAboutCard extends StatelessWidget {
   final bool isDarkMode;
+<<<<<<< HEAD
   final VoidCallback? onFetchPastDraws;
   final bool isFetchingPastDraws;
 
@@ -567,6 +600,10 @@ class _DetailedAboutCard extends StatelessWidget {
     this.onFetchPastDraws,
     this.isFetchingPastDraws = false,
   });
+=======
+
+  const _DetailedAboutCard({required this.isDarkMode});
+>>>>>>> 040d0d8d8116ae221e5f6e6341a7441b44ce6370
 
   @override
   Widget build(BuildContext context) {
@@ -601,6 +638,7 @@ class _DetailedAboutCard extends StatelessWidget {
         ),
         const Divider(height: 1),
 
+<<<<<<< HEAD
         // Fetch Past Draws
         _SettingsTile(
           icon: Icons.download_rounded,
@@ -620,6 +658,8 @@ class _DetailedAboutCard extends StatelessWidget {
         ),
         const Divider(height: 1),
 
+=======
+>>>>>>> 040d0d8d8116ae221e5f6e6341a7441b44ce6370
         // Developer
         _SettingsTile(
           icon: Icons.person_rounded,

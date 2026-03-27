@@ -2,7 +2,7 @@
 
 **EZ2 Lotto** is a Flutter application that provides real-time result tracking, historical archives, statistical insights, and ticket checking for the Philippine EZ2 (2D Lotto) game.
 
-**Version:** `1.0.1`
+**Version:** `1.0.2`
 
 ## 🚀 Key Features
 
@@ -14,6 +14,8 @@
   - manual input mode with date/draw filters
   - prize calculation (Straight / Rambolito)
 - **Offline support** via local cache for fast startup and intermittent network.
+- **Cloud update** feature for checking app updates.
+- **Improved performance** and bug fixes.
 
 ## 🧭 App Screens
 
@@ -97,9 +99,23 @@ If you fork this project, ensure those functions exist in your Supabase project 
 
 ## ✅ Credit
 
-**EZ2 Lotto** was created by **Mark Spencer D. Montalbo**.
+**EZ2 Lotto** was created by **Mark Spencer M. Montalbo**.
 
-©2026 Mark Spencer D. Montalbo. All rights reserved.
+📍 Valenzuela City, Metro Manila, Philippines
+
+📧 msmontalbo15@gmail.com
+
+🔗 [LinkedIn](https://www.linkedin.com/in/mark-spencer-montalbo)
+
+🌐 [Portfolio](https://msmontalbo15.github.io/portfolio/)
+
+©2026 Mark Spencer M. Montalbo. All rights reserved.
+
+---
+
+## ⚠️ Disclaimer
+
+This app is for informational purposes only. We are not affiliated with PCSO in any way. Always verify your tickets at authorized PCSO outlets.
 
 ---
 

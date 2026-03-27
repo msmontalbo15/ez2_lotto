@@ -58,6 +58,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+<<<<<<< HEAD
     final prov       = context.watch<AppProvider>();
     final months     = prov.availableMonths;
     final mk         = prov.selectedMonth;
@@ -66,6 +67,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final todayDate  = toShortDate(getPHTime());
     final ph         = getPHTime();
     final isCurrent  = mk == monthKey(ph);
+=======
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    final prov = context.watch<AppProvider>();
+    final months = prov.availableMonths;
+    final mk = prov.selectedMonth;
+>>>>>>> 040d0d8d8116ae221e5f6e6341a7441b44ce6370
 
     // ── Build visible rows ─────────────────────────────────
     List<DayResult> visible = [];
@@ -92,7 +100,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F0E8),
+      backgroundColor:
+          isDarkMode ? const Color(0xFF121212) : const Color(0xFFF5F0E8),
       body: SafeArea(
         child: Column(children: [
           // ── Header ───────────────────────────────────────
@@ -106,9 +115,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
               context.horizontalPadding,
               context.headerPaddingTop,
               context.horizontalPadding,
+<<<<<<< HEAD
               20,
             ),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+=======
+              24,
+            ),
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+>>>>>>> 040d0d8d8116ae221e5f6e6341a7441b44ce6370
               Text('HISTORY',
                   style: TextStyle(
                       color: Colors.white,
@@ -163,6 +179,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
           // ── Rows ─────────────────────────────────────────
           Expanded(
+<<<<<<< HEAD
             child: RefreshIndicator(
               onRefresh: () async {
                 final prov = context.read<AppProvider>();
@@ -186,6 +203,23 @@ class _HistoryScreenState extends State<HistoryScreen> {
                           },
                         ),
             ),
+=======
+            child: isLoading
+                ? _SkeletonList()
+                : visible.isEmpty
+                    ? _EmptyState(onRetry: () => prov.fetchMonth(mk))
+                    : ListView.builder(
+                        padding: EdgeInsets.fromLTRB(context.horizontalPadding,
+                            8, context.horizontalPadding, 24),
+                        itemCount: visible.length,
+                        itemBuilder: (ctx, i) {
+                          final r = visible[i];
+                          final isToday = r.date == todayDate;
+                          return _HistoryRow(
+                              row: r, isToday: isToday, isDarkMode: isDarkMode);
+                        },
+                      ),
+>>>>>>> 040d0d8d8116ae221e5f6e6341a7441b44ce6370
           ),
 
           if (prov.isOffline)
@@ -314,18 +348,33 @@ class _MonthTabs extends StatelessWidget {
 // ── History Row ───────────────────────────────────────────────
 class _HistoryRow extends StatelessWidget {
   final DayResult row;
+<<<<<<< HEAD
   final bool      isToday;
   const _HistoryRow({required this.row, required this.isToday});
+=======
+  final bool isToday;
+  final bool isDarkMode;
+  const _HistoryRow(
+      {required this.row, required this.isToday, required this.isDarkMode});
+>>>>>>> 040d0d8d8116ae221e5f6e6341a7441b44ce6370
 
   @override
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
+<<<<<<< HEAD
         color:        isToday ? const Color(0xFFFFF8E1) : Colors.white,
+=======
+        color: isDarkMode
+            ? (isToday ? const Color(0xFF2C2C2C) : const Color(0xFF1E1E1E))
+            : (isToday ? const Color(0xFFFFF8E1) : Colors.white),
+>>>>>>> 040d0d8d8116ae221e5f6e6341a7441b44ce6370
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isToday ? const Color(0xFFFFCA2C) : Colors.grey.shade200,
+          color: isToday
+              ? const Color(0xFFFFCA2C)
+              : (isDarkMode ? Colors.grey.shade800 : Colors.grey.shade200),
           width: isToday ? 2 : 1,
         ),
         boxShadow: [
@@ -441,6 +490,7 @@ class _Ball extends StatelessWidget {
   Widget build(BuildContext context) {
     final size = context.lottoBallSize(baseSize: 32.0);
     return Container(
+<<<<<<< HEAD
       width: size, height: size,
       decoration: BoxDecoration(shape: BoxShape.circle, color: color, boxShadow: [
         BoxShadow(color: color.withValues(alpha: 0.25), blurRadius: 3, offset: const Offset(0, 1))
@@ -450,6 +500,23 @@ class _Ball extends StatelessWidget {
               fontSize: size * 0.4,
               fontWeight: FontWeight.w900,
               color: Colors.white))),
+=======
+      width: size,
+      height: size,
+      decoration:
+          BoxDecoration(shape: BoxShape.circle, color: color, boxShadow: [
+        BoxShadow(
+            color: color.withValues(alpha: 0.25),
+            blurRadius: 3,
+            offset: const Offset(0, 1))
+      ]),
+      child: Center(
+          child: Text(n,
+              style: TextStyle(
+                  fontSize: size * 0.4,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white))),
+>>>>>>> 040d0d8d8116ae221e5f6e6341a7441b44ce6370
     );
   }
 }

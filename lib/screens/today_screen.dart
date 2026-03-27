@@ -33,6 +33,8 @@ class _TodayScreenState extends State<TodayScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     final prov = context.watch<AppProvider>();
     final today = prov.todayResult;
     final allRows = prov.allHistoryRows;
@@ -84,7 +86,8 @@ class _TodayScreenState extends State<TodayScreen> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F0E8),
+      backgroundColor:
+          isDarkMode ? const Color(0xFF121212) : const Color(0xFFF5F0E8),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async {
@@ -120,7 +123,12 @@ class _TodayScreenState extends State<TodayScreen> {
                     context.horizontalPadding, 24),
                 sliver: SliverList(
                   delegate: SliverChildListDelegate([
+<<<<<<< HEAD
                     const _SectionLabel(text: "TODAY'S RESULTS"),
+=======
+                    _SectionLabel(
+                        text: "RESULTA NGAYON", isDarkMode: isDarkMode),
+>>>>>>> 040d0d8d8116ae221e5f6e6341a7441b44ce6370
                     const SizedBox(height: 10),
                     _DrawCard(
                       slot: '2pm',
@@ -131,6 +139,7 @@ class _TodayScreenState extends State<TodayScreen> {
                       winners: today?.winners2pm,
                       isLoading: isLoading,
                       now: _now,
+                      isDarkMode: isDarkMode,
                     ),
                     const SizedBox(height: 12),
                     _DrawCard(
@@ -142,6 +151,7 @@ class _TodayScreenState extends State<TodayScreen> {
                       winners: today?.winners5pm,
                       isLoading: isLoading,
                       now: _now,
+                      isDarkMode: isDarkMode,
                     ),
                     const SizedBox(height: 12),
                     _DrawCard(
@@ -153,11 +163,12 @@ class _TodayScreenState extends State<TodayScreen> {
                       winners: today?.winners9pm,
                       isLoading: isLoading,
                       now: _now,
+                      isDarkMode: isDarkMode,
                     ),
                     const SizedBox(height: 24),
-                    const _HowToPlay(),
+                    _HowToPlay(isDarkMode: isDarkMode),
                     const SizedBox(height: 16),
-                    const _Copyright(),
+                    _Copyright(isDarkMode: isDarkMode),
                   ]),
                 ),
               ),
@@ -395,15 +406,16 @@ class _OfflineBanner extends StatelessWidget {
 // ── Section Label ─────────────────────────────────────────────
 class _SectionLabel extends StatelessWidget {
   final String text;
-  const _SectionLabel({required this.text});
+  final bool isDarkMode;
+  const _SectionLabel({required this.text, required this.isDarkMode});
 
   @override
   Widget build(BuildContext context) {
     return Text(text,
-        style: const TextStyle(
+        style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w800,
-            color: Color(0xFF888888),
+            color: isDarkMode ? Colors.grey.shade400 : const Color(0xFF888888),
             letterSpacing: 1.2));
   }
 }
@@ -545,6 +557,7 @@ class _DrawCard extends StatelessWidget {
   final int? winners;
   final bool isLoading;
   final DateTime now;
+  final bool isDarkMode;
   const _DrawCard(
       {required this.slot,
       required this.label,
@@ -553,7 +566,8 @@ class _DrawCard extends StatelessWidget {
       required this.result,
       required this.winners,
       required this.isLoading,
-      required this.now});
+      required this.now,
+      required this.isDarkMode});
 
   bool get _hasPassed {
     final h = now.hour;
@@ -569,7 +583,7 @@ class _DrawCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
@@ -578,16 +592,18 @@ class _DrawCard extends StatelessWidget {
               offset: const Offset(0, 3))
         ],
         border: Border.all(
-            color:
-                hasResult ? color.withValues(alpha: 0.3) : Colors.grey.shade200,
+            color: hasResult
+                ? color.withValues(alpha: 0.3)
+                : (isDarkMode ? Colors.grey.shade800 : Colors.grey.shade200),
             width: 1.5),
       ),
       child: Column(children: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           decoration: BoxDecoration(
-            color:
-                hasResult ? color.withValues(alpha: 0.08) : Colors.grey.shade50,
+            color: hasResult
+                ? color.withValues(alpha: 0.08)
+                : (isDarkMode ? const Color(0xFF2C2C2C) : Colors.grey.shade50),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
           ),
           child: Row(children: [
@@ -596,32 +612,53 @@ class _DrawCard extends StatelessWidget {
                 decoration: BoxDecoration(
                     color: hasResult
                         ? color.withValues(alpha: 0.15)
-                        : Colors.grey.shade200,
+                        : (isDarkMode
+                            ? Colors.grey.shade800
+                            : Colors.grey.shade200),
                     shape: BoxShape.circle),
                 child: Icon(icon,
-                    color: hasResult ? color : Colors.grey, size: 22)),
+                    color: hasResult
+                        ? color
+                        : (isDarkMode ? Colors.grey.shade400 : Colors.grey),
+                    size: 22)),
             const SizedBox(width: 12),
             Text(label,
                 style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
-                    color: hasResult ? color : Colors.grey.shade600)),
+                    color: hasResult
+                        ? color
+                        : (isDarkMode
+                            ? Colors.grey.shade400
+                            : Colors.grey.shade600))),
             const Spacer(),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
                 color: hasResult
-                    ? Colors.green.shade50
+                    ? (isDarkMode
+                        ? Colors.green.shade900
+                        : Colors.green.shade50)
                     : waiting
-                        ? Colors.orange.shade50
-                        : Colors.grey.shade100,
+                        ? (isDarkMode
+                            ? Colors.orange.shade900
+                            : Colors.orange.shade50)
+                        : (isDarkMode
+                            ? Colors.grey.shade800
+                            : Colors.grey.shade100),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                     color: hasResult
-                        ? Colors.green.shade300
+                        ? (isDarkMode
+                            ? Colors.green.shade600
+                            : Colors.green.shade300)
                         : waiting
-                            ? Colors.orange.shade300
-                            : Colors.grey.shade300),
+                            ? (isDarkMode
+                                ? Colors.orange.shade600
+                                : Colors.orange.shade300)
+                            : (isDarkMode
+                                ? Colors.grey.shade600
+                                : Colors.grey.shade300)),
               ),
               child: Text(
                   hasResult
@@ -643,11 +680,11 @@ class _DrawCard extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
           child: isLoading
-              ? _LoadingSkeleton()
+              ? _LoadingSkeleton(isDarkMode: isDarkMode)
               : hasResult
                   ? _ResultDisplay(
                       combo: result!, winners: winners, color: color)
-                  : _NoResult(waiting: waiting),
+                  : _NoResult(waiting: waiting, isDarkMode: isDarkMode),
         ),
       ]),
     );
@@ -732,7 +769,8 @@ class _BigBall extends StatelessWidget {
 
 class _NoResult extends StatelessWidget {
   final bool waiting;
-  const _NoResult({required this.waiting});
+  final bool isDarkMode;
+  const _NoResult({required this.waiting, required this.isDarkMode});
   @override
   Widget build(BuildContext context) {
     return Column(children: [
@@ -749,6 +787,9 @@ class _NoResult extends StatelessWidget {
 }
 
 class _LoadingSkeleton extends StatelessWidget {
+  final bool isDarkMode;
+  const _LoadingSkeleton({required this.isDarkMode});
+
   @override
   Widget build(BuildContext context) {
     return Row(mainAxisAlignment: MainAxisAlignment.center, children: [
@@ -756,29 +797,37 @@ class _LoadingSkeleton extends StatelessWidget {
           width: 80,
           height: 80,
           decoration: BoxDecoration(
-              shape: BoxShape.circle, color: Colors.grey.shade200)),
+              shape: BoxShape.circle,
+              color: isDarkMode ? Colors.grey.shade800 : Colors.grey.shade200)),
       const SizedBox(width: 16),
-      Container(width: 20, height: 4, color: Colors.grey.shade200),
+      Container(
+          width: 20,
+          height: 4,
+          color: isDarkMode ? Colors.grey.shade800 : Colors.grey.shade200),
       const SizedBox(width: 16),
       Container(
           width: 80,
           height: 80,
           decoration: BoxDecoration(
-              shape: BoxShape.circle, color: Colors.grey.shade200)),
+              shape: BoxShape.circle,
+              color: isDarkMode ? Colors.grey.shade800 : Colors.grey.shade200)),
     ]);
   }
 }
 
 class _HowToPlay extends StatelessWidget {
-  const _HowToPlay();
+  final bool isDarkMode;
+  const _HowToPlay({required this.isDarkMode});
+
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-          color: Colors.white,
+          color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.grey.shade200)),
+          border: Border.all(
+              color: isDarkMode ? Colors.grey.shade800 : Colors.grey.shade200)),
       child:
           const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
@@ -829,7 +878,8 @@ class _InfoRow extends StatelessWidget {
 
 // ── Copyright ─────────────────────────────────────────────────
 class _Copyright extends StatelessWidget {
-  const _Copyright();
+  final bool isDarkMode;
+  const _Copyright({required this.isDarkMode});
 
   @override
   Widget build(BuildContext context) {

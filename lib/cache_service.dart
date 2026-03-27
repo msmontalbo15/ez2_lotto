@@ -115,6 +115,16 @@ class CacheService {
     debugPrint('[Cache] cleared ${keys.length} entries');
   }
 
+  /// Clear all cached data
+  static Future<void> clearAll() async {
+    final keys = _p.getKeys();
+    for (final key in keys) {
+      if (key.startsWith('ez2_')) {
+        await _p.remove(key);
+      }
+    }
+  }
+
   // ── Key builders ──────────────────────────────────────────
 
   static String todayKey(String isoDate)  => 'ez2_today:$isoDate';

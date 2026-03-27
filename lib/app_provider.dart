@@ -276,6 +276,7 @@ class AppProvider extends ChangeNotifier {
 
   void _startSmartTimer() {
     _smartRefreshTimer?.cancel();
+<<<<<<< HEAD
     final inWindow = _isInDrawWindow(getPHTime());
     _smartRefreshTimer = Timer(
       inWindow ? const Duration(seconds: 5) : const Duration(seconds: 60),
@@ -286,6 +287,16 @@ class AppProvider extends ChangeNotifier {
         _startSmartTimer();
       },
     );
+=======
+    // Poll every 5 minutes during draw window (2PM / 5PM / 9PM PHT)
+    // Sites publish combo results within 5-30 minutes after draw
+    _smartRefreshTimer = Timer.periodic(const Duration(minutes: 5), (_) {
+      final ph = getPHTime();
+      if (_isInDrawWindow(ph)) {
+        _repo.loadToday(forceNetwork: true);
+      }
+    });
+>>>>>>> 040d0d8d8116ae221e5f6e6341a7441b44ce6370
   }
 
   bool _isInDrawWindow(DateTime ph) {

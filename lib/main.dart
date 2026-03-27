@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'app_locale.dart';
 import 'app_provider.dart';
+import 'app_locale.dart';
 import 'cache_service.dart';
 import 'connectivity_service.dart';
 import 'constants.dart';
@@ -21,12 +22,19 @@ Future<void> main() async {
     CacheService.init(),
   ]);
 
+  // Initialize settings and wait for them to load from cache
+  final appLocale = AppLocale();
+  await appLocale.waitForLoad();
+
   // Initialize connectivity monitoring (with fallback if it fails)
   try {
     await ConnectivityService.instance.init();
   } catch (e) {
     debugPrint('Connectivity init failed: $e');
   }
+
+  // Wait for settings to load from cache before app starts
+  await AppLocale.instance.waitForLoad();
 
   runApp(const EZ2App());
 }
@@ -38,6 +46,7 @@ class EZ2App extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+<<<<<<< HEAD
         ChangeNotifierProvider(create: (_) => AppLocale()),
         ChangeNotifierProvider(create: (_) => AppProvider()..init()),
       ],
@@ -85,6 +94,122 @@ class EZ2App extends StatelessWidget {
           ),
         ),
         home: const _Shell(),
+=======
+        ChangeNotifierProvider(create: (_) => AppProvider()..init()),
+        ChangeNotifierProvider.value(value: AppLocale.instance),
+      ],
+      child: Consumer<AppLocale>(
+        builder: (context, appLocale, _) {
+          return MaterialApp(
+            title: 'EZ2 Lotto',
+            debugShowCheckedModeBanner: false,
+            theme: appLocale.isDarkMode
+                ? ThemeData(
+                    useMaterial3: true,
+                    colorScheme: ColorScheme.fromSeed(
+                      seedColor: const Color(0xFFC0392B),
+                      brightness: Brightness.dark,
+                    ),
+                    textTheme: const TextTheme(
+                      bodyLarge: TextStyle(fontSize: 18, height: 1.5),
+                      bodyMedium: TextStyle(fontSize: 16, height: 1.5),
+                      bodySmall: TextStyle(fontSize: 14, height: 1.4),
+                      titleLarge:
+                          TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+                      titleMedium:
+                          TextStyle(fontSize: 19, fontWeight: FontWeight.w600),
+                    ),
+                    cardTheme: CardThemeData(
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18)),
+                      color: Colors.grey.shade900,
+                    ),
+                    elevatedButtonTheme: ElevatedButtonThemeData(
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size(0, 52),
+                        textStyle: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                    inputDecorationTheme: InputDecorationTheme(
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 16),
+                    ),
+                    navigationBarTheme: NavigationBarThemeData(
+                      height: context.isSmallPhone
+                          ? 60
+                          : (context.isPhone ? 70 : 80),
+                      backgroundColor: const Color(0xFF1E1E1E),
+                      indicatorColor:
+                          const Color(0xFFC0392B).withValues(alpha: 0.2),
+                      iconTheme: WidgetStateProperty.all(
+                        const IconThemeData(color: Colors.white70),
+                      ),
+                      labelTextStyle: WidgetStateProperty.all(
+                        TextStyle(
+                            fontSize: context.smallFontSize,
+                            fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  )
+                : ThemeData(
+                    useMaterial3: true,
+                    colorScheme: ColorScheme.fromSeed(
+                      seedColor: const Color(0xFFC0392B),
+                      brightness: Brightness.light,
+                    ),
+                    textTheme: const TextTheme(
+                      bodyLarge: TextStyle(fontSize: 18, height: 1.5),
+                      bodyMedium: TextStyle(fontSize: 16, height: 1.5),
+                      bodySmall: TextStyle(fontSize: 14, height: 1.4),
+                      titleLarge:
+                          TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+                      titleMedium:
+                          TextStyle(fontSize: 19, fontWeight: FontWeight.w600),
+                    ),
+                    cardTheme: CardThemeData(
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18)),
+                      color: Colors.white,
+                    ),
+                    elevatedButtonTheme: ElevatedButtonThemeData(
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size(0, 52),
+                        textStyle: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                    inputDecorationTheme: InputDecorationTheme(
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 16),
+                    ),
+                    navigationBarTheme: NavigationBarThemeData(
+                      height: context.isSmallPhone
+                          ? 60
+                          : (context.isPhone ? 70 : 80),
+                      backgroundColor: Colors.white,
+                      indicatorColor:
+                          const Color(0xFFC0392B).withValues(alpha: 0.1),
+                      iconTheme: WidgetStateProperty.all(
+                        const IconThemeData(color: Color(0xFF2C3E50)),
+                      ),
+                      labelTextStyle: WidgetStateProperty.all(
+                        TextStyle(
+                            fontSize: context.smallFontSize,
+                            fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ),
+            home: const _Shell(),
+          );
+        },
+>>>>>>> 040d0d8d8116ae221e5f6e6341a7441b44ce6370
       ),
     );
   }
@@ -105,6 +230,7 @@ class _ShellState extends State<_Shell> {
     StatsScreen(),
     const TicketScreen(),
     const SettingsScreen(),
+<<<<<<< HEAD
   ];
 
   static const _destinations = [
@@ -133,11 +259,64 @@ class _ShellState extends State<_Shell> {
       selectedIcon: Icon(Icons.settings_rounded, size: 28),
       label: 'Settings',
     ),
+=======
+>>>>>>> 040d0d8d8116ae221e5f6e6341a7441b44ce6370
   ];
 
   @override
   Widget build(BuildContext context) {
     final prov = context.watch<AppProvider>();
+    final appLocale = context.watch<AppLocale>();
+    final isEnglish = appLocale.isEnglish;
+    final isDarkMode = appLocale.isDarkMode;
+
+    final destinations = [
+      NavigationDestination(
+        icon: Icon(Icons.today_outlined,
+            size: 28,
+            color: isDarkMode ? Colors.white : const Color(0xFF2C3E50)),
+        selectedIcon: Icon(Icons.today_rounded,
+            size: 28,
+            color: isDarkMode ? Colors.white : const Color(0xFFC0392B)),
+        label: AppStrings.get('navTab', isEnglish),
+      ),
+      NavigationDestination(
+        icon: Icon(Icons.calendar_month_outlined,
+            size: 28,
+            color: isDarkMode ? Colors.white : const Color(0xFF2C3E50)),
+        selectedIcon: Icon(Icons.calendar_month_rounded,
+            size: 28,
+            color: isDarkMode ? Colors.white : const Color(0xFFC0392B)),
+        label: AppStrings.get('navHistory', isEnglish),
+      ),
+      NavigationDestination(
+        icon: Icon(Icons.bar_chart_outlined,
+            size: 28,
+            color: isDarkMode ? Colors.white : const Color(0xFF2C3E50)),
+        selectedIcon: Icon(Icons.bar_chart_rounded,
+            size: 28,
+            color: isDarkMode ? Colors.white : const Color(0xFFC0392B)),
+        label: AppStrings.get('navStats', isEnglish),
+      ),
+      NavigationDestination(
+        icon: Icon(Icons.confirmation_number_outlined,
+            size: 28,
+            color: isDarkMode ? Colors.white : const Color(0xFF2C3E50)),
+        selectedIcon: Icon(Icons.confirmation_number_rounded,
+            size: 28,
+            color: isDarkMode ? Colors.white : const Color(0xFFC0392B)),
+        label: AppStrings.get('navTicket', isEnglish),
+      ),
+      NavigationDestination(
+        icon: Icon(Icons.settings_outlined,
+            size: 28,
+            color: isDarkMode ? Colors.white : const Color(0xFF2C3E50)),
+        selectedIcon: Icon(Icons.settings_rounded,
+            size: 28,
+            color: isDarkMode ? Colors.white : const Color(0xFFC0392B)),
+        label: AppStrings.get('navSettings', isEnglish),
+      ),
+    ];
 
     // First-run loading screen: show while initial fetch is in progress
     if (prov.isRefreshing && prov.todayResult == null) {
@@ -179,9 +358,11 @@ class _ShellState extends State<_Shell> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _idx,
         onDestinationSelected: (i) => setState(() => _idx = i),
-        destinations: _destinations,
-        backgroundColor: Colors.white,
-        indicatorColor: const Color(0xFFC0392B).withValues(alpha: 0.12),
+        destinations: destinations,
+        backgroundColor: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+        indicatorColor: isDarkMode
+            ? const Color(0xFFC0392B).withValues(alpha: 0.3)
+            : const Color(0xFFC0392B).withValues(alpha: 0.12),
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         elevation: 8,
       ),
@@ -298,7 +479,11 @@ class _FirstRunLoaderState extends State<_FirstRunLoader>
                   onPressed: _handleRetry,
                   icon: const Icon(Icons.refresh, color: Colors.white70),
                   label: const Text(
+<<<<<<< HEAD
                     'Subukang Kumonekta Ulit',
+=======
+                    'Try Again',
+>>>>>>> 040d0d8d8116ae221e5f6e6341a7441b44ce6370
                     style: TextStyle(color: Colors.white70),
                   ),
                 ),
