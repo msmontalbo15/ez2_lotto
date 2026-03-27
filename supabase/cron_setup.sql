@@ -105,7 +105,6 @@ SELECT cron.schedule('ez2-fetch-2pm-1', '20 6 * * *',  'SELECT ez2_fetch_today()
 SELECT cron.schedule('ez2-fetch-2pm-2', '25 6 * * *',  'SELECT ez2_fetch_today()');
 SELECT cron.schedule('ez2-fetch-2pm-3', '30 6 * * *', 'SELECT ez2_fetch_today()');
 SELECT cron.schedule('ez2-fetch-2pm-4', '35 6 * * *', 'SELECT ez2_fetch_today()');
-SELECT cron.schedule('ez2-fetch-2pm-5', '0 7 * * *',  'SELECT ez2_fetch_today()');
 
 -- 5PM PHT draw (9:00 UTC)
 -- +20-35 min for combo → fire at 9:20, 9:25, 9:30, 9:35 UTC
@@ -114,7 +113,6 @@ SELECT cron.schedule('ez2-fetch-5pm-1', '20 9 * * *',  'SELECT ez2_fetch_today()
 SELECT cron.schedule('ez2-fetch-5pm-2', '25 9 * * *',  'SELECT ez2_fetch_today()');
 SELECT cron.schedule('ez2-fetch-5pm-3', '30 9 * * *', 'SELECT ez2_fetch_today()');
 SELECT cron.schedule('ez2-fetch-5pm-4', '35 9 * * *', 'SELECT ez2_fetch_today()');
-SELECT cron.schedule('ez2-fetch-5pm-5', '0 10 * * *',  'SELECT ez2_fetch_today()');
 
 -- 9PM PHT draw (13:00 UTC)
 -- +20-35 min for combo → fire at 13:20, 13:25, 13:30, 13:35 UTC

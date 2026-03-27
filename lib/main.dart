@@ -2,14 +2,17 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'app_locale.dart';
 import 'app_provider.dart';
 import 'cache_service.dart';
 import 'connectivity_service.dart';
 import 'constants.dart';
+import 'responsive.dart';
 import 'screens/today_screen.dart';
 import 'screens/history_screen.dart';
 import 'screens/stats_screen.dart';
 import 'screens/ticket_screen.dart';
+import 'screens/settings_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -33,8 +36,11 @@ class EZ2App extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => AppProvider()..init(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AppLocale()),
+        ChangeNotifierProvider(create: (_) => AppProvider()..init()),
+      ],
       child: MaterialApp(
         title: 'EZ2 Lotto',
         debugShowCheckedModeBanner: false,
@@ -71,9 +77,10 @@ class EZ2App extends StatelessWidget {
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           ),
           navigationBarTheme: NavigationBarThemeData(
-            height: 70,
+            height: context.isSmallPhone ? 60 : (context.isPhone ? 70 : 80),
             labelTextStyle: WidgetStateProperty.all(
-              const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+              TextStyle(
+                  fontSize: context.smallFontSize, fontWeight: FontWeight.w700),
             ),
           ),
         ),
@@ -97,28 +104,34 @@ class _ShellState extends State<_Shell> {
     const HistoryScreen(),
     StatsScreen(),
     const TicketScreen(),
+    const SettingsScreen(),
   ];
 
   static const _destinations = [
     NavigationDestination(
       icon: Icon(Icons.today_outlined, size: 28),
       selectedIcon: Icon(Icons.today_rounded, size: 28),
-      label: 'Resulta',
+      label: 'Results',
     ),
     NavigationDestination(
       icon: Icon(Icons.calendar_month_outlined, size: 28),
       selectedIcon: Icon(Icons.calendar_month_rounded, size: 28),
-      label: 'Kasaysayan',
+      label: 'History',
     ),
     NavigationDestination(
       icon: Icon(Icons.bar_chart_outlined, size: 28),
       selectedIcon: Icon(Icons.bar_chart_rounded, size: 28),
-      label: 'Istatistika',
+      label: 'Statistics',
     ),
     NavigationDestination(
       icon: Icon(Icons.confirmation_number_outlined, size: 28),
       selectedIcon: Icon(Icons.confirmation_number_rounded, size: 28),
-      label: 'Tiket',
+      label: 'Ticket',
+    ),
+    NavigationDestination(
+      icon: Icon(Icons.settings_outlined, size: 28),
+      selectedIcon: Icon(Icons.settings_rounded, size: 28),
+      label: 'Settings',
     ),
   ];
 
@@ -148,7 +161,7 @@ class _ShellState extends State<_Shell> {
                     Icon(Icons.wifi_off, color: Colors.white, size: 18),
                     SizedBox(width: 8),
                     Text(
-                      'You are offline - showing cached data',
+                      'Wala kang internet - nagpapakita ng nakaimbak na datos',
                       style: TextStyle(color: Colors.white, fontSize: 13),
                     ),
                   ],
@@ -269,7 +282,9 @@ class _FirstRunLoaderState extends State<_FirstRunLoader>
               ),
               const SizedBox(height: 20),
               Text(
-                isOffline ? 'No internet connection...' : 'Loading results...',
+                isOffline
+                    ? 'Walang internet connection...'
+                    : 'Kinukuha ang mga resulta...',
                 style: const TextStyle(
                   color: Colors.white60,
                   fontSize: 15,
@@ -283,7 +298,7 @@ class _FirstRunLoaderState extends State<_FirstRunLoader>
                   onPressed: _handleRetry,
                   icon: const Icon(Icons.refresh, color: Colors.white70),
                   label: const Text(
-                    'Try to reconnect',
+                    'Subukang Kumonekta Ulit',
                     style: TextStyle(color: Colors.white70),
                   ),
                 ),

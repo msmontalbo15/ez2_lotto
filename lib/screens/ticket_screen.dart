@@ -10,6 +10,7 @@ import '../constants.dart';
 import '../helpers.dart' show checkTicket;
 import '../models.dart';
 import '../widgets/common.dart';
+import '../responsive.dart';
 
 class TicketScreen extends StatefulWidget {
   const TicketScreen({super.key});
@@ -172,17 +173,23 @@ class _ScreenHeader extends StatelessWidget {
           color: color,
           borderRadius:
               const BorderRadius.vertical(bottom: Radius.circular(28))),
-      padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
+      padding: EdgeInsets.fromLTRB(
+        context.horizontalPadding,
+        context.headerPaddingTop,
+        context.horizontalPadding,
+        context.headerPaddingBottom,
+      ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(title,
-            style: const TextStyle(
+            style: TextStyle(
                 color: Colors.white,
-                fontSize: 28,
+                fontSize: context.titleFontSize,
                 fontWeight: FontWeight.w900)),
         const SizedBox(height: 4),
         Text(subtitle,
             style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.75), fontSize: 15)),
+                color: Colors.white.withValues(alpha: 0.75),
+                fontSize: context.subtitleFontSize)),
       ]),
     );
   }
@@ -407,7 +414,7 @@ class _WinRow extends StatelessWidget {
             Text(match.date,
                 style:
                     const TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
-            Text(match.draw,
+            Text(match.drawLabel,
                 style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
             Text('Resulta: ${match.combo}',
                 style: TextStyle(fontSize: 13, color: Colors.grey.shade500)),
@@ -476,7 +483,8 @@ class _IdleView extends StatelessWidget {
 
       Expanded(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+          padding: EdgeInsets.fromLTRB(
+              context.horizontalPadding, 16, context.horizontalPadding, 32),
           children: [
             // Error banner
             if (error != null) ...[

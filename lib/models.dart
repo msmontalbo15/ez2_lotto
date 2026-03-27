@@ -1,14 +1,17 @@
 // lib/models.dart
 
+// ── DayResult ─────────────────────────────────────────────────
+// Represents all three draws for a single date.
+// winner fields are nullable — populated only when the DB has winner_count data.
 class DayResult {
-  final String date;
-  final String day;
-  final String? result2pm;
+  final String  date;       // "Mar 23, 2026"
+  final String  day;        // "Monday"
+  final String? result2pm;  // "28-30" or null if not drawn yet
   final String? result5pm;
   final String? result9pm;
-  final int? winners2pm;
-  final int? winners5pm;
-  final int? winners9pm;
+  final int?    winners2pm; // null until winner_count column is populated
+  final int?    winners5pm;
+  final int?    winners9pm;
 
   const DayResult({
     required this.date,
@@ -24,40 +27,31 @@ class DayResult {
   bool get hasAnyResult =>
       result2pm != null || result5pm != null || result9pm != null;
 
+  /// Creates an empty placeholder for a date with no draws yet.
   factory DayResult.empty(String date, String day) =>
       DayResult(date: date, day: day);
 
-  factory DayResult.fromSupabaseRows(
-      List<Map<String, dynamic>> rows, String date, String day) {
-    String? r2pm, r5pm, r9pm;
-    int? w2pm, w5pm, w9pm;
-    for (final row in rows) {
-      final slot = row['draw_slot'] as String?;
-      final combo = row['combo'] as String?;
-      final winners = row['winners'] as int?;
-      if (slot == '2pm') {
-        r2pm = combo;
-        w2pm = winners;
-      }
-      if (slot == '5pm') {
-        r5pm = combo;
-        w5pm = winners;
-      }
-      if (slot == '9pm') {
-        r9pm = combo;
-        w9pm = winners;
-      }
-    }
-    return DayResult(
-        date: date,
-        day: day,
-        result2pm: r2pm,
-        result5pm: r5pm,
-        result9pm: r9pm,
-        winners2pm: w2pm,
-        winners5pm: w5pm,
-        winners9pm: w9pm);
-  }
+  /// Creates a copy with specific fields overridden.
+  DayResult copyWith({
+    String?  date,
+    String?  day,
+    String?  result2pm,
+    String?  result5pm,
+    String?  result9pm,
+    int?     winners2pm,
+    int?     winners5pm,
+    int?     winners9pm,
+  }) =>
+      DayResult(
+        date:       date       ?? this.date,
+        day:        day        ?? this.day,
+        result2pm:  result2pm  ?? this.result2pm,
+        result5pm:  result5pm  ?? this.result5pm,
+        result9pm:  result9pm  ?? this.result9pm,
+        winners2pm: winners2pm ?? this.winners2pm,
+        winners5pm: winners5pm ?? this.winners5pm,
+        winners9pm: winners9pm ?? this.winners9pm,
+      );
 }
 
 // ── Draw status ───────────────────────────────────────────────
@@ -65,78 +59,89 @@ enum DrawStatus { upcoming, live, done }
 
 // ── Stats models ──────────────────────────────────────────────
 
-/// A single number with its frequency and last-seen combo
+/// A single number (1–31) with its appearance frequency.
 class NumberStat {
-  final int number;
-  final int count;
-  final int daysSinceLast;
+  final int     number;
+  final int     count;
+  final int     daysSinceLast;
+  final String? lastCombo; // e.g. "06-19"
 
-  /// The full combo in which this number last appeared (e.g. "06-19")
-  final String? lastCombo;
-  const NumberStat(
-      {required this.number,
-      required this.count,
-      required this.daysSinceLast,
-      this.lastCombo});
+  const NumberStat({
+    required this.number,
+    required this.count,
+    required this.daysSinceLast,
+    this.lastCombo,
+  });
 }
 
-/// A full combo pair (e.g. "06-19") with hit count and last-seen date
+/// A full combo pair (e.g. "06-19") with its appearance count.
 class ComboStat {
-  final String combo; // "06-19"
-  final int count;
-  final int daysSinceLast;
-  final String lastDate; // "Jan 7, 2026"
-  const ComboStat(
-      {required this.combo,
-      required this.count,
-      required this.daysSinceLast,
-      required this.lastDate});
+  final String combo;
+  final int    count;
+  final int    daysSinceLast;
+  final String lastDate;
+
+  const ComboStat({
+    required this.combo,
+    required this.count,
+    required this.daysSinceLast,
+    required this.lastDate,
+  });
 }
 
-/// A single-number frequency in pairs (one number known, partner varies)
+/// How often a single number appears across all draws.
 class PairStat {
-  final int number;
-  final int count;
-  final bool isFirst; // true → number-XX, false → XX-number
-  const PairStat(
-      {required this.number, required this.count, required this.isFirst});
+  final int  number;
+  final int  count;
+  final bool isFirst;
+
+  const PairStat({
+    required this.number,
+    required this.count,
+    required this.isFirst,
+  });
 }
 
 class EZ2Stats {
   final List<NumberStat> hot;
   final List<NumberStat> cold;
-  final List<ComboStat> topCombos; // top 5 full combos
-  final List<PairStat> topPairs; // top 10 single-number frequencies
-  const EZ2Stats(
-      {required this.hot,
-      required this.cold,
-      required this.topCombos,
-      required this.topPairs});
+  final List<ComboStat>  topCombos;
+  final List<PairStat>   topPairs;
+
+  const EZ2Stats({
+    required this.hot,
+    required this.cold,
+    required this.topCombos,
+    required this.topPairs,
+  });
 }
 
-// ── Stream update ─────────────────────────────────────────────
+// ── Stream events ─────────────────────────────────────────────
+
 class MonthUpdate {
-  final String mk;
+  final String          mk;
   final List<DayResult> rows;
   const MonthUpdate({required this.mk, required this.rows});
 }
 
-// ── Ticket ────────────────────────────────────────────────────
+// ── Ticket checker ────────────────────────────────────────────
+
 class TicketMatch {
   final String date;
   final String slot;
   final String combo;
-  final bool isStraight;
-  final int prize;
+  final bool   isStraight;
+  final int    prize;
 
-  const TicketMatch(
-      {required this.date,
-      required this.slot,
-      required this.combo,
-      required this.isStraight,
-      required this.prize});
+  const TicketMatch({
+    required this.date,
+    required this.slot,
+    required this.combo,
+    required this.isStraight,
+    required this.prize,
+  });
 
-  String get draw {
+  String get drawLabel {
     if (slot == '2pm') return '2:00 PM';
     if (slot == '5pm') return '5:00 PM';
     return '9:00 PM';

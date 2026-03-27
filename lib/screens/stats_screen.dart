@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../app_provider.dart';
 import '../helpers.dart';
 import '../models.dart';
+import '../responsive.dart';
 
 class StatsScreen extends StatefulWidget {
   const StatsScreen({super.key});
@@ -35,17 +36,23 @@ class _StatsScreenState extends State<StatsScreen> {
                   borderRadius:
                       BorderRadius.vertical(bottom: Radius.circular(28)),
                 ),
-                padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
+                padding: EdgeInsets.fromLTRB(
+                  context.horizontalPadding,
+                  context.headerPaddingTop,
+                  context.horizontalPadding,
+                  28,
+                ),
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('ISTATISTIKA',
+                      Text('ISTATISTIKA',
                           style: TextStyle(
                               color: Colors.white,
-                              fontSize: 28,
+                              fontSize: context.titleFontSize,
                               fontWeight: FontWeight.w900)),
                       const SizedBox(height: 4),
-                      Text('Statistics from ${allRows.length} draw results',
+                      Text(
+                          'Mga istatistika mula sa ${allRows.length} draw results',
                           style: TextStyle(
                               color: Colors.white.withValues(alpha: 0.75),
                               fontSize: 15)),
@@ -54,7 +61,8 @@ class _StatsScreenState extends State<StatsScreen> {
             ),
 
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              padding: EdgeInsets.fromLTRB(
+                  context.horizontalPadding, 16, context.horizontalPadding, 24),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
                   if (stats == null)
@@ -78,8 +86,9 @@ class _StatsScreenState extends State<StatsScreen> {
                     // ── 2. Most Drawn Number Pairs ────────
                     _SectionHeader(
                       icon: Icons.grid_view_rounded,
-                      label: 'Most Drawn Number Pairs',
-                      sub: 'How often each number appears in any draw position',
+                      label: 'Mga Pinaka-Madaling Pairs ng Numbers',
+                      sub:
+                          'Gaano kadalas lumabas ang bawat number sa kahit anong position ng draw',
                       color: const Color(0xFF7D3C98),
                     ),
                     const SizedBox(height: 12),
@@ -198,7 +207,7 @@ class _MostDrawnNumbersTable extends StatelessWidget {
       child: Column(children: [
         _TableHeader(
           color: const Color(0xFF1A5276),
-          children: const ['No.', 'Numbers', 'Hits', 'Last seen'],
+          children: const ['#', 'Numbers', 'Bes', 'Huling Lumabas'],
           widths: const [36, 0, 48, 0],
         ),
         ...combos.asMap().entries.map((e) {
@@ -241,7 +250,7 @@ class _MostDrawnNumbersTable extends StatelessWidget {
                       Text(c.lastDate,
                           style: const TextStyle(
                               fontSize: 12, color: Colors.grey)),
-                      Text('(${c.daysSinceLast} days ago)',
+                      Text('(${c.daysSinceLast} araw na ang nakakaraan)',
                           style: TextStyle(
                               fontSize: 11, color: Colors.grey.shade400)),
                     ]),
@@ -269,7 +278,7 @@ class _MostDrawnPairsTable extends StatelessWidget {
       child: Column(children: [
         _TableHeader(
           color: const Color(0xFF7D3C98),
-          children: const ['No.', 'Pairs', 'Draws'],
+          children: const ['#', 'Pairs', 'Bes'],
           widths: const [36, 0, 0],
         ),
         ...pairs.asMap().entries.map((e) {
@@ -403,19 +412,19 @@ class _WinnersChartCard extends StatelessWidget {
           Expanded(
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('2D Lotto Winners Chart',
+              const Text('Chart ng Mga Nanalo sa 2D Lotto',
                   style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
                       color: Color(0xFF0E7490))),
               const SizedBox(height: 2),
-              Text('Number of winners in recent games',
+              Text('Bilang ng nanalo sa mga kamakailang games',
                   style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
             ]),
           ),
           const SizedBox(width: 12),
           _TogglePill(
-            options: const ['Last 7 Days', 'Last 30 Days'],
+            options: const ['Nakaraang 7 Araw', 'Nakaraang 30 Araw'],
             selected: days == 7 ? 0 : 1,
             onChanged: (i) => onDaysChanged(i == 0 ? 7 : 30),
           ),
@@ -426,7 +435,7 @@ class _WinnersChartCard extends StatelessWidget {
             ? SizedBox(
                 height: 180,
                 child: Center(
-                    child: Text('No winner data yet',
+                    child: Text('Wala pang datos ng nanalo',
                         style: TextStyle(
                             color: Colors.grey.shade400, fontSize: 15))),
               )
@@ -521,7 +530,7 @@ class _LineChartPainter extends CustomPainter {
     final chartH = size.height - topPad - botPad;
 
     final maxVal = points.map((p) => p.count).reduce(math.max).toDouble();
-    final minVal = 0.0;
+    const minVal = 0.0;
     final range = maxVal - minVal == 0 ? 1.0 : maxVal - minVal;
 
     double x(int i) =>

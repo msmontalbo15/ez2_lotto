@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../app_provider.dart';
 import '../helpers.dart';
 import '../models.dart';
+import '../responsive.dart';
 
 class TodayScreen extends StatefulWidget {
   const TodayScreen({super.key});
@@ -97,27 +98,33 @@ class _TodayScreenState extends State<TodayScreen> {
               SliverToBoxAdapter(child: _Header(now: _now)),
               if (prov.isOffline)
                 SliverToBoxAdapter(
-                    child: _OfflineBanner(onRetry: prov.fetchToday)),
+                    child: Padding(
+                  padding: EdgeInsets.fromLTRB(context.horizontalPadding, 12,
+                      context.horizontalPadding, 0),
+                  child: _OfflineBanner(onRetry: prov.fetchToday),
+                )),
 
               // ── Most Recent Draw ─────────────────────────
               if (lastResult != null && lastSlot != null)
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                    padding: EdgeInsets.fromLTRB(context.horizontalPadding, 16,
+                        context.horizontalPadding, 0),
                     child: _RecentResultCard(row: lastResult, slot: lastSlot),
                   ),
                 ),
 
               // ── Today's Draws ────────────────────────────
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
+                padding: EdgeInsets.fromLTRB(context.horizontalPadding, 14,
+                    context.horizontalPadding, 24),
                 sliver: SliverList(
                   delegate: SliverChildListDelegate([
-                    const _SectionLabel(text: "RESULTA NGAYON"),
+                    const _SectionLabel(text: "TODAY'S RESULTS"),
                     const SizedBox(height: 10),
                     _DrawCard(
                       slot: '2pm',
-                      label: '2:00 NG HAPON',
+                      label: '2:00 PM',
                       icon: Icons.wb_sunny_outlined,
                       color: const Color(0xFFE67E22),
                       result: today?.result2pm,
@@ -128,7 +135,7 @@ class _TodayScreenState extends State<TodayScreen> {
                     const SizedBox(height: 12),
                     _DrawCard(
                       slot: '5pm',
-                      label: '5:00 NG HAPON',
+                      label: '5:00 PM',
                       icon: Icons.wb_twilight,
                       color: const Color(0xFF8E44AD),
                       result: today?.result5pm,
@@ -139,7 +146,7 @@ class _TodayScreenState extends State<TodayScreen> {
                     const SizedBox(height: 12),
                     _DrawCard(
                       slot: '9pm',
-                      label: '9:00 NG GABI',
+                      label: '9:00 PM',
                       icon: Icons.nightlight_round,
                       color: const Color(0xFF2C3E50),
                       result: today?.result9pm,
@@ -230,7 +237,7 @@ class _Header extends StatelessWidget {
       case _LiveStatus.waiting:
         dotColor = Colors.amberAccent.shade200;
         labelColor = Colors.amberAccent.shade200;
-        label = 'SOON';
+        label = 'COMING SOON';
       case _LiveStatus.closed:
         dotColor = Colors.white.withValues(alpha: 0.4);
         labelColor = Colors.white.withValues(alpha: 0.5);
@@ -243,7 +250,12 @@ class _Header extends StatelessWidget {
         color: Color(0xFFC0392B),
         borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
       ),
-      padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
+      padding: EdgeInsets.fromLTRB(
+        context.horizontalPadding,
+        context.headerPaddingTop,
+        context.horizontalPadding,
+        context.headerPaddingBottom,
+      ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           Container(
@@ -272,16 +284,16 @@ class _Header extends StatelessWidget {
                   fontWeight: FontWeight.w700)),
         ]),
         const SizedBox(height: 16),
-        const Text('RESULTA NGAYON',
+        Text('RESULTA NGAYON',
             style: TextStyle(
                 color: Colors.white,
-                fontSize: 28,
+                fontSize: context.titleFontSize,
                 fontWeight: FontWeight.w900)),
         const SizedBox(height: 4),
         Text('$dayName, $dateStr',
             style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.85),
-                fontSize: 17,
+                fontSize: context.subtitleFontSize,
                 fontWeight: FontWeight.w500)),
         const SizedBox(height: 8),
         Text(timeStr,
@@ -356,7 +368,7 @@ class _OfflineBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      margin: EdgeInsets.fromLTRB(0, 0, 0, 0),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
           color: const Color(0xFFFFF3CD),

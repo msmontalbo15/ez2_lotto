@@ -60,6 +60,6 @@ const kMonthsFil = [
 ];
 
 // ── Supabase config ───────────────────────────────────────────
-const kSupabaseUrl = 'https://rdmnigpdkcypfvaoychy.supabase.co';
+const kSupabaseUrl = 'https://votvvysgaiaycmbgeayh.supabase.co';
 const kSupabaseAnonKey =
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkbW5pZ3Bka2N5cGZ2YW95Y2h5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1NTgxMDMsImV4cCI6MjA4OTEzNDEwM30.pQ2G5pKfG4sWtVlx_M-4HnploI23_HlU7FZdHSCC3Qo';
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZvdHZ2eXNnYWlheWNtYmdlYXloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxODQ0NDgsImV4cCI6MjA4OTc2MDQ0OH0.ll3My0vVjBYW6Qnk49vplMH_K1OOY6prj--Gaz3uCdw';

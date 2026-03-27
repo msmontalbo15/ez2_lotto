@@ -49,6 +49,13 @@ List<String> buildAvailableMonths({int count = 3}) {
       count, (i) => monthKey(DateTime(ph.year, ph.month - i, 1)));
 }
 
+/// All months in [year], newest first, capped at today.
+List<String> buildMonthsForYear(int year) {
+  final ph = getPHTime();
+  final lastMonth = (year == ph.year) ? ph.month : 12;
+  return List.generate(lastMonth, (i) => monthKey(DateTime(year, lastMonth - i, 1)));
+}
+
 // ── Date parsing helper ───────────────────────────────────────
 DateTime? parseShortDate(String d) {
   try {
