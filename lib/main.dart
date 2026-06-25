@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'app_locale.dart';
 import 'app_provider.dart';
-import 'app_locale.dart';
 import 'cache_service.dart';
 import 'connectivity_service.dart';
 import 'constants.dart';
@@ -15,16 +14,15 @@ import 'screens/stats_screen.dart';
 import 'screens/ticket_screen.dart';
 import 'screens/settings_screen.dart';
 
+import 'package:flutter/foundation.dart';
+import 'package:flutter_jailbreak_detection/flutter_jailbreak_detection.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Future.wait([
     Supabase.initialize(url: kSupabaseUrl, anonKey: kSupabaseAnonKey),
     CacheService.init(),
   ]);
-
-  // Initialize settings and wait for them to load from cache
-  final appLocale = AppLocale();
-  await appLocale.waitForLoad();
 
   // Initialize connectivity monitoring (with fallback if it fails)
   try {
@@ -33,183 +31,134 @@ Future<void> main() async {
     debugPrint('Connectivity init failed: $e');
   }
 
-  // Wait for settings to load from cache before app starts
-  await AppLocale.instance.waitForLoad();
+  // Root/Jailbreak detection guard
+  bool isSecure = true;
+  if (!kDebugMode) {
+    try {
+      final isJailbroken = await FlutterJailbreakDetection.jailbroken;
+      final isDeveloperMode = await FlutterJailbreakDetection.developerMode;
+      if (isJailbroken || isDeveloperMode) {
+        isSecure = false;
+      }
+    } catch (e) {
+      debugPrint('Jailbreak detection error: $e');
+    }
+  }
 
-  runApp(const EZ2App());
+  runApp(EZ2App(isSecure: isSecure));
 }
 
 class EZ2App extends StatelessWidget {
-  const EZ2App({super.key});
+  final bool isSecure;
+  const EZ2App({super.key, this.isSecure = true});
+
+  // ── Shared text theme ────────────────────────────────────────
+  static const _textTheme = TextTheme(
+    bodyLarge: TextStyle(fontSize: 20, height: 1.5),
+    bodyMedium: TextStyle(fontSize: 18, height: 1.5),
+    bodySmall: TextStyle(fontSize: 16, height: 1.4),
+    titleLarge: TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
+    titleMedium: TextStyle(fontSize: 21, fontWeight: FontWeight.w600),
+  );
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-<<<<<<< HEAD
         ChangeNotifierProvider(create: (_) => AppLocale()),
         ChangeNotifierProvider(create: (_) => AppProvider()..init()),
       ],
-      child: MaterialApp(
-        title: 'EZ2 Lotto',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFFC0392B),
-            brightness: Brightness.light,
-          ),
-          // Elder-friendly: larger base font sizes
-          textTheme: const TextTheme(
-            bodyLarge: TextStyle(fontSize: 18, height: 1.5),
-            bodyMedium: TextStyle(fontSize: 16, height: 1.5),
-            bodySmall: TextStyle(fontSize: 14, height: 1.4),
-            titleLarge: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
-            titleMedium: TextStyle(fontSize: 19, fontWeight: FontWeight.w600),
-          ),
-          cardTheme: CardThemeData(
-            elevation: 0,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-            color: Colors.white,
-          ),
-          elevatedButtonTheme: ElevatedButtonThemeData(
-            style: ElevatedButton.styleFrom(
-              minimumSize: const Size(0, 52),
-              textStyle:
-                  const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-            ),
-          ),
-          inputDecorationTheme: InputDecorationTheme(
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          ),
-          navigationBarTheme: NavigationBarThemeData(
-            height: context.isSmallPhone ? 60 : (context.isPhone ? 70 : 80),
-            labelTextStyle: WidgetStateProperty.all(
-              TextStyle(
-                  fontSize: context.smallFontSize, fontWeight: FontWeight.w700),
-            ),
-          ),
-        ),
-        home: const _Shell(),
-=======
-        ChangeNotifierProvider(create: (_) => AppProvider()..init()),
-        ChangeNotifierProvider.value(value: AppLocale.instance),
-      ],
       child: Consumer<AppLocale>(
-        builder: (context, appLocale, _) {
+        builder: (context, locale, _) {
           return MaterialApp(
             title: 'EZ2 Lotto',
             debugShowCheckedModeBanner: false,
-            theme: appLocale.isDarkMode
-                ? ThemeData(
-                    useMaterial3: true,
-                    colorScheme: ColorScheme.fromSeed(
-                      seedColor: const Color(0xFFC0392B),
-                      brightness: Brightness.dark,
-                    ),
-                    textTheme: const TextTheme(
-                      bodyLarge: TextStyle(fontSize: 18, height: 1.5),
-                      bodyMedium: TextStyle(fontSize: 16, height: 1.5),
-                      bodySmall: TextStyle(fontSize: 14, height: 1.4),
-                      titleLarge:
-                          TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
-                      titleMedium:
-                          TextStyle(fontSize: 19, fontWeight: FontWeight.w600),
-                    ),
-                    cardTheme: CardThemeData(
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(18)),
-                      color: Colors.grey.shade900,
-                    ),
-                    elevatedButtonTheme: ElevatedButtonThemeData(
-                      style: ElevatedButton.styleFrom(
-                        minimumSize: const Size(0, 52),
-                        textStyle: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                    inputDecorationTheme: InputDecorationTheme(
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 16),
-                    ),
-                    navigationBarTheme: NavigationBarThemeData(
-                      height: context.isSmallPhone
-                          ? 60
-                          : (context.isPhone ? 70 : 80),
-                      backgroundColor: const Color(0xFF1E1E1E),
-                      indicatorColor:
-                          const Color(0xFFC0392B).withValues(alpha: 0.2),
-                      iconTheme: WidgetStateProperty.all(
-                        const IconThemeData(color: Colors.white70),
-                      ),
-                      labelTextStyle: WidgetStateProperty.all(
-                        TextStyle(
-                            fontSize: context.smallFontSize,
-                            fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                  )
-                : ThemeData(
-                    useMaterial3: true,
-                    colorScheme: ColorScheme.fromSeed(
-                      seedColor: const Color(0xFFC0392B),
-                      brightness: Brightness.light,
-                    ),
-                    textTheme: const TextTheme(
-                      bodyLarge: TextStyle(fontSize: 18, height: 1.5),
-                      bodyMedium: TextStyle(fontSize: 16, height: 1.5),
-                      bodySmall: TextStyle(fontSize: 14, height: 1.4),
-                      titleLarge:
-                          TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
-                      titleMedium:
-                          TextStyle(fontSize: 19, fontWeight: FontWeight.w600),
-                    ),
-                    cardTheme: CardThemeData(
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(18)),
-                      color: Colors.white,
-                    ),
-                    elevatedButtonTheme: ElevatedButtonThemeData(
-                      style: ElevatedButton.styleFrom(
-                        minimumSize: const Size(0, 52),
-                        textStyle: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                    inputDecorationTheme: InputDecorationTheme(
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 16),
-                    ),
-                    navigationBarTheme: NavigationBarThemeData(
-                      height: context.isSmallPhone
-                          ? 60
-                          : (context.isPhone ? 70 : 80),
-                      backgroundColor: Colors.white,
-                      indicatorColor:
-                          const Color(0xFFC0392B).withValues(alpha: 0.1),
-                      iconTheme: WidgetStateProperty.all(
-                        const IconThemeData(color: Color(0xFF2C3E50)),
-                      ),
-                      labelTextStyle: WidgetStateProperty.all(
-                        TextStyle(
-                            fontSize: context.smallFontSize,
-                            fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                  ),
-            home: const _Shell(),
+            themeMode: locale.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+
+            // ── Light theme ──────────────────────────────────
+            theme: ThemeData(
+              useMaterial3: true,
+              brightness: Brightness.light,
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: const Color(0xFFC0392B),
+                brightness: Brightness.light,
+              ),
+              scaffoldBackgroundColor: const Color(0xFFF5F0E8),
+              cardColor: Colors.white,
+              dividerColor: Colors.grey.shade200,
+              textTheme: _textTheme,
+              cardTheme: CardThemeData(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18)),
+                color: Colors.white,
+              ),
+              elevatedButtonTheme: ElevatedButtonThemeData(
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(0, 52),
+                  textStyle: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.w700),
+                ),
+              ),
+              inputDecorationTheme: InputDecorationTheme(
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              ),
+              navigationBarTheme: NavigationBarThemeData(
+                height: context.isSmallPhone ? 60 : (context.isPhone ? 70 : 80),
+                labelTextStyle: WidgetStateProperty.all(
+                  TextStyle(
+                      fontSize: context.smallFontSize,
+                      fontWeight: FontWeight.w700),
+                ),
+              ),
+            ),
+
+            // ── Dark theme ───────────────────────────────────
+            darkTheme: ThemeData(
+              useMaterial3: true,
+              brightness: Brightness.dark,
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: const Color(0xFFC0392B),
+                brightness: Brightness.dark,
+              ),
+              scaffoldBackgroundColor: const Color(0xFF121212),
+              cardColor: const Color(0xFF1E1E1E),
+              dividerColor: Colors.grey.shade800,
+              textTheme: _textTheme,
+              cardTheme: CardThemeData(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18)),
+                color: const Color(0xFF1E1E1E),
+              ),
+              elevatedButtonTheme: ElevatedButtonThemeData(
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(0, 52),
+                  textStyle: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.w700),
+                ),
+              ),
+              inputDecorationTheme: InputDecorationTheme(
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              ),
+              navigationBarTheme: NavigationBarThemeData(
+                height: context.isSmallPhone ? 60 : (context.isPhone ? 70 : 80),
+                labelTextStyle: WidgetStateProperty.all(
+                  TextStyle(
+                      fontSize: context.smallFontSize,
+                      fontWeight: FontWeight.w700),
+                ),
+              ),
+            ),
+            home: isSecure ? const _Shell() : const SecurityWarningScreen(),
           );
         },
->>>>>>> 040d0d8d8116ae221e5f6e6341a7441b44ce6370
       ),
     );
   }
@@ -224,13 +173,12 @@ class _Shell extends StatefulWidget {
 class _ShellState extends State<_Shell> {
   int _idx = 0;
 
-  static final _screens = [
-    const TodayScreen(),
-    const HistoryScreen(),
+  static const _screens = <Widget>[
+    TodayScreen(),
+    HistoryScreen(),
     StatsScreen(),
-    const TicketScreen(),
-    const SettingsScreen(),
-<<<<<<< HEAD
+    TicketScreen(),
+    SettingsScreen(),
   ];
 
   static const _destinations = [
@@ -259,64 +207,13 @@ class _ShellState extends State<_Shell> {
       selectedIcon: Icon(Icons.settings_rounded, size: 28),
       label: 'Settings',
     ),
-=======
->>>>>>> 040d0d8d8116ae221e5f6e6341a7441b44ce6370
   ];
 
   @override
   Widget build(BuildContext context) {
     final prov = context.watch<AppProvider>();
-    final appLocale = context.watch<AppLocale>();
-    final isEnglish = appLocale.isEnglish;
-    final isDarkMode = appLocale.isDarkMode;
-
-    final destinations = [
-      NavigationDestination(
-        icon: Icon(Icons.today_outlined,
-            size: 28,
-            color: isDarkMode ? Colors.white : const Color(0xFF2C3E50)),
-        selectedIcon: Icon(Icons.today_rounded,
-            size: 28,
-            color: isDarkMode ? Colors.white : const Color(0xFFC0392B)),
-        label: AppStrings.get('navTab', isEnglish),
-      ),
-      NavigationDestination(
-        icon: Icon(Icons.calendar_month_outlined,
-            size: 28,
-            color: isDarkMode ? Colors.white : const Color(0xFF2C3E50)),
-        selectedIcon: Icon(Icons.calendar_month_rounded,
-            size: 28,
-            color: isDarkMode ? Colors.white : const Color(0xFFC0392B)),
-        label: AppStrings.get('navHistory', isEnglish),
-      ),
-      NavigationDestination(
-        icon: Icon(Icons.bar_chart_outlined,
-            size: 28,
-            color: isDarkMode ? Colors.white : const Color(0xFF2C3E50)),
-        selectedIcon: Icon(Icons.bar_chart_rounded,
-            size: 28,
-            color: isDarkMode ? Colors.white : const Color(0xFFC0392B)),
-        label: AppStrings.get('navStats', isEnglish),
-      ),
-      NavigationDestination(
-        icon: Icon(Icons.confirmation_number_outlined,
-            size: 28,
-            color: isDarkMode ? Colors.white : const Color(0xFF2C3E50)),
-        selectedIcon: Icon(Icons.confirmation_number_rounded,
-            size: 28,
-            color: isDarkMode ? Colors.white : const Color(0xFFC0392B)),
-        label: AppStrings.get('navTicket', isEnglish),
-      ),
-      NavigationDestination(
-        icon: Icon(Icons.settings_outlined,
-            size: 28,
-            color: isDarkMode ? Colors.white : const Color(0xFF2C3E50)),
-        selectedIcon: Icon(Icons.settings_rounded,
-            size: 28,
-            color: isDarkMode ? Colors.white : const Color(0xFFC0392B)),
-        label: AppStrings.get('navSettings', isEnglish),
-      ),
-    ];
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     // First-run loading screen: show while initial fetch is in progress
     if (prov.isRefreshing && prov.todayResult == null) {
@@ -331,17 +228,24 @@ class _ShellState extends State<_Shell> {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-              color: Colors.orange.shade700,
-              child: const SafeArea(
+              color: isDark ? Colors.orange.shade900 : Colors.orange.shade700,
+              child: SafeArea(
                 bottom: false,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.wifi_off, color: Colors.white, size: 18),
-                    SizedBox(width: 8),
-                    Text(
-                      'Wala kang internet - nagpapakita ng nakaimbak na datos',
-                      style: TextStyle(color: Colors.white, fontSize: 13),
+                    const Icon(Icons.wifi_off, color: Colors.white, size: 18),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        'Wala kang internet - nagpapakita ng nakaimbak na datos',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.9),
+                          fontSize: 13,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 2,
+                      ),
                     ),
                   ],
                 ),
@@ -350,7 +254,8 @@ class _ShellState extends State<_Shell> {
           Expanded(
             child: IndexedStack(
               index: _idx,
-              children: _screens.map((s) => RepaintBoundary(child: s)).toList(),
+              children:
+                  _screens.map((s) => RepaintBoundary(child: s)).toList(),
             ),
           ),
         ],
@@ -358,11 +263,9 @@ class _ShellState extends State<_Shell> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _idx,
         onDestinationSelected: (i) => setState(() => _idx = i),
-        destinations: destinations,
-        backgroundColor: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
-        indicatorColor: isDarkMode
-            ? const Color(0xFFC0392B).withValues(alpha: 0.3)
-            : const Color(0xFFC0392B).withValues(alpha: 0.12),
+        destinations: _destinations,
+        backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        indicatorColor: const Color(0xFFC0392B).withValues(alpha: 0.12),
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         elevation: 8,
       ),
@@ -479,11 +382,7 @@ class _FirstRunLoaderState extends State<_FirstRunLoader>
                   onPressed: _handleRetry,
                   icon: const Icon(Icons.refresh, color: Colors.white70),
                   label: const Text(
-<<<<<<< HEAD
                     'Subukang Kumonekta Ulit',
-=======
-                    'Try Again',
->>>>>>> 040d0d8d8116ae221e5f6e6341a7441b44ce6370
                     style: TextStyle(color: Colors.white70),
                   ),
                 ),
@@ -505,6 +404,68 @@ class _FirstRunLoaderState extends State<_FirstRunLoader>
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class SecurityWarningScreen extends StatelessWidget {
+  const SecurityWarningScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF1A1A1A),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.security_update_warning_rounded,
+                  color: Color(0xFFE57373),
+                  size: 80,
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  'Banta sa Seguridad',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Hindi maaring buksan ang app na ito sa rooted o jailbroken na device, o kung naka-on ang Developer Options, dahil sa banta sa seguridad ng iyong data.',
+                  style: TextStyle(
+                    color: Color(0xFFB0B0B0),
+                    fontSize: 16,
+                    height: 1.5,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 32),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFC0392B),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Isara ang App'),
+                ),
+              ],
+            ),
           ),
         ),
       ),

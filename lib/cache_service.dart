@@ -10,8 +10,8 @@
 // Format:  { "v": 1, "savedAt": "ISO8601", "data": <payload> }
 
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'logger.dart';
 
 // Bump this when the cache payload structure changes — forces a full invalidation
 const int _kCacheVersion = 2;
@@ -62,7 +62,7 @@ class CacheService {
         'data':    data,
       }));
     } catch (e) {
-      debugPrint('[Cache] set error ($key): $e');
+      Log.e('CacheService', 'set error ($key): $e');
     }
   }
 
@@ -112,17 +112,7 @@ class CacheService {
   static Future<void> clearAll() async {
     final keys = _p.getKeys().where((k) => k.startsWith('ez2_')).toList();
     for (final k in keys) await _p.remove(k);
-    debugPrint('[Cache] cleared ${keys.length} entries');
-  }
-
-  /// Clear all cached data
-  static Future<void> clearAll() async {
-    final keys = _p.getKeys();
-    for (final key in keys) {
-      if (key.startsWith('ez2_')) {
-        await _p.remove(key);
-      }
-    }
+    Log.d('CacheService', 'cleared ${keys.length} entries');
   }
 
   // ── Key builders ──────────────────────────────────────────
@@ -148,7 +138,7 @@ class CacheService {
     }
     for (final k in stale) _p.remove(k);
     if (stale.isNotEmpty) {
-      debugPrint('[Cache] evicted ${stale.length} old-version entries');
+      Log.d('CacheService', 'evicted ${stale.length} old-version entries');
     }
   }
 

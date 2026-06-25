@@ -43,11 +43,25 @@ class _TicketScreenState extends State<TicketScreen> {
 
   Future<void> _pickImage(ImageSource source) async {
     try {
-      final xfile = await _picker.pickImage(source: source, imageQuality: 85);
+      final xfile = await _picker.pickImage(
+        source: source,
+        imageQuality: 80,
+        maxWidth: 1280,
+        maxHeight: 1280,
+      );
       if (xfile == null) return;
 
       final file = File(xfile.path);
       final bytes = await file.readAsBytes();
+
+      if (bytes.lengthInBytes > 2 * 1024 * 1024) {
+        setState(() {
+          _error = 'Masyadong malaki ang image. Gamitin ang mas maliit na photo (max 2MB).';
+          _mode = _Mode.idle;
+        });
+        return;
+      }
+
       final b64 = base64Encode(bytes);
       final mime = xfile.mimeType ?? 'image/jpeg';
 
@@ -127,11 +141,7 @@ class _TicketScreenState extends State<TicketScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
     return Scaffold(
-      backgroundColor:
-          isDarkMode ? const Color(0xFF121212) : const Color(0xFFF5F0E8),
       body: SafeArea(
         child: switch (_mode) {
           _Mode.checking => _CheckingView(imageFile: _imageFile),
@@ -264,11 +274,6 @@ class _ResultView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
-    final cardBorder =
-        isDarkMode ? const Color(0xFF3E3E3E) : Colors.grey.shade200;
-
     final numbers = ticketInfo['numbers'] as String? ?? '??-??';
     final parts = numbers.split('-');
     final num1 = int.tryParse(parts[0]) ?? 0;
@@ -292,10 +297,10 @@ class _ResultView extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: cardColor,
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                    color: won ? const Color(0xFF4CAF50) : cardBorder,
+                    color: won ? const Color(0xFF4CAF50) : Colors.grey.shade200,
                     width: won ? 2 : 1),
               ),
               child: Column(children: [
@@ -303,9 +308,7 @@ class _ResultView extends StatelessWidget {
                     style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w800,
-                        color: isDarkMode
-                            ? Colors.grey.shade400
-                            : Colors.grey.shade500,
+                        color: Colors.grey.shade500,
                         letterSpacing: 2)),
                 const SizedBox(height: 16),
                 Row(mainAxisAlignment: MainAxisAlignment.center, children: [
@@ -315,9 +318,7 @@ class _ResultView extends StatelessWidget {
                       child: Text('—',
                           style: TextStyle(
                               fontSize: 38,
-                              color: isDarkMode
-                                  ? Colors.grey.shade600
-                                  : Colors.grey.shade300,
+                              color: Colors.grey.shade300,
                               fontWeight: FontWeight.w200))),
                   LottoBall(number: num2, size: 90, win: won),
                 ]),
@@ -352,26 +353,21 @@ class _ResultView extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                    color: cardColor,
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: cardBorder)),
+                    border: Border.all(color: Colors.grey.shade200)),
                 child: Column(children: [
                   const Text('😔', style: TextStyle(fontSize: 48)),
                   const SizedBox(height: 12),
-                  Text('Hindi pa nanalo',
+                  const Text('Hindi pa nanalo',
                       style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w900,
-                          color: isDarkMode
-                              ? Colors.grey.shade300
-                              : Color(0xFF555555))),
+                          color: Color(0xFF555555))),
                   const SizedBox(height: 6),
                   Text('Huwag sumuko — subukan ulit!',
-                      style: TextStyle(
-                          fontSize: 15,
-                          color: isDarkMode
-                              ? Colors.grey.shade400
-                              : Colors.grey.shade500)),
+                      style:
+                          TextStyle(fontSize: 15, color: Colors.grey.shade500)),
                 ]),
               ),
             ],
@@ -417,14 +413,11 @@ class _WinRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
-
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-          color: cardColor,
+          color: Colors.white,
           border: Border.all(color: const Color(0xFFA5D6A7), width: 2),
           borderRadius: BorderRadius.circular(14)),
       child: Row(children: [
@@ -432,29 +425,12 @@ class _WinRow extends StatelessWidget {
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(match.date,
-<<<<<<< HEAD
                 style:
                     const TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
             Text(match.drawLabel,
                 style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
-=======
-                style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: isDarkMode ? Colors.white : Colors.black)),
-            Text(match.draw,
-                style: TextStyle(
-                    fontSize: 13,
-                    color: isDarkMode
-                        ? Colors.grey.shade400
-                        : Colors.grey.shade600)),
->>>>>>> 040d0d8d8116ae221e5f6e6341a7441b44ce6370
             Text('Resulta: ${match.combo}',
-                style: TextStyle(
-                    fontSize: 13,
-                    color: isDarkMode
-                        ? Colors.grey.shade400
-                        : Colors.grey.shade500)),
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade500)),
           ]),
         ),
         Container(
@@ -505,11 +481,6 @@ class _IdleView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
-    final cardBorder =
-        isDarkMode ? const Color(0xFF3E3E3E) : Colors.grey.shade200;
-
     final dateOptions = allRows
         .where((r) => r.hasAnyResult)
         .map((r) => r.date)
@@ -586,13 +557,12 @@ class _IdleView extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                  color: cardColor,
+                  color: Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: cardBorder),
+                  border: Border.all(color: Theme.of(context).dividerColor),
                   boxShadow: [
                     BoxShadow(
-                        color: Colors.black
-                            .withValues(alpha: isDarkMode ? 0.2 : 0.04),
+                        color: Colors.black.withValues(alpha: 0.04),
                         blurRadius: 8,
                         offset: const Offset(0, 2))
                   ]),
@@ -729,25 +699,20 @@ class _IdleView extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                  color: cardColor,
+                  color: Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: cardBorder)),
+                  border: Border.all(color: Theme.of(context).dividerColor)),
               child:
                   Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Icon(Icons.info_outline_rounded,
-                    size: 18,
-                    color: isDarkMode
-                        ? Colors.grey.shade500
-                        : Colors.grey.shade400),
+                    size: 18, color: Colors.grey.shade400),
                 const SizedBox(width: 10),
                 Expanded(
                     child: Text(
                         'Ang mga resulta ay base sa data mula sa Supabase database. I-type ang numero ng iyong tiket para malaman kung nanalo ka.',
                         style: TextStyle(
                             fontSize: 13,
-                            color: isDarkMode
-                                ? Colors.grey.shade400
-                                : Colors.grey.shade500,
+                            color: Colors.grey.shade500,
                             height: 1.5))),
               ]),
             ),

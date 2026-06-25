@@ -8,22 +8,9 @@ import 'helpers.dart';
 import 'models.dart';
 import 'connectivity_service.dart';
 
-DateTime _parseShortDate(String d) {
-  const months = {
-    'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4,
-    'May': 5, 'Jun': 6, 'Jul': 7, 'Aug': 8,
-    'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12,
-  };
-  try {
-    final p   = d.split(' ');
-    final m   = months[p[0]] ?? 1;
-    final day = int.parse(p[1].replaceAll(',', ''));
-    final yr  = int.parse(p[2]);
-    return DateTime(yr, m, day);
-  } catch (_) {
-    return DateTime(2000);
-  }
-}
+
+
+import 'logger.dart';
 
 class AppProvider extends ChangeNotifier {
   final _repo         = EZ2Repository.instance;
@@ -73,7 +60,12 @@ class AppProvider extends ChangeNotifier {
   List<DayResult> get allHistoryRows {
     if (_cachedAllRows != null) return _cachedAllRows!;
     final all = _historyRows.values.expand((r) => r).toList()
-      ..sort((a, b) => _parseShortDate(b.date).compareTo(_parseShortDate(a.date)));
+      ..sort((a, b) {
+        final da = parseShortDate(b.date);
+        final db = parseShortDate(a.date);
+        if (da == null || db == null) return 0;
+        return da.compareTo(db);
+      });
     return _cachedAllRows = all;
   }
 
@@ -170,7 +162,7 @@ class AppProvider extends ChangeNotifier {
       _isRefreshing = false;
       notifyListeners();
     }).catchError((e) {
-      debugPrint('[AppProvider] init fetch error: $e');
+      Log.e('AppProvider', 'init fetch error: $e');
       _isRefreshing = false;
       _isOffline    = true;
       // Clear stuck loading flags
@@ -189,7 +181,7 @@ class AppProvider extends ChangeNotifier {
         notifyListeners();
       }
     } catch (e) {
-      debugPrint('[AppProvider] fetchAvailableYears error: $e');
+      Log.e('AppProvider', 'fetchAvailableYears error: $e');
       // Fallback: just current year
       _availableYears = [getPHTime().year];
       notifyListeners();
@@ -215,24 +207,25 @@ class AppProvider extends ChangeNotifier {
   }
 
   /// Ensures [mk] is either loaded or actively loading.
-  /// Resets a stuck loading flag before retrying.
   void _ensureMonthLoaded(String mk) {
     final hasData   = _historyRows[mk]?.isNotEmpty == true;
     final isLoading = _historyLoading[mk] == true;
 
+    // If we have fresh data, nothing to do
     if (hasData && !CacheService.isStale(CacheService.monthKey(mk), CacheService.monthTtl(mk))) {
-      return; // fresh data — nothing to do
+      return;
     }
 
+    // If already loading, only retry if stuck (has loading flag but no data)
     if (isLoading) {
-      // If it's been stuck loading with no result, reset and retry
-      if (_historyRows[mk] == null) {
+      if (!hasData) {
         _historyLoading[mk] = false;
         fetchMonth(mk);
       }
       return;
     }
 
+    // No data or stale — fetch it
     fetchMonth(mk);
   }
 
@@ -243,9 +236,14 @@ class AppProvider extends ChangeNotifier {
   // ── History ───────────────────────────────────────────────
 
   Future<void> fetchMonth(String mk) async {
-    if (_historyRows[mk]?.isNotEmpty == true &&
-        !CacheService.isStale(CacheService.monthKey(mk), CacheService.monthTtl(mk))) return;
     if (_historyLoading[mk] == true) return;
+
+    // Only skip if we already have data AND cache is still fresh
+    final hasData = _historyRows[mk]?.isNotEmpty == true;
+    if (hasData && !CacheService.isStale(CacheService.monthKey(mk), CacheService.monthTtl(mk))) {
+      return;
+    }
+
     _historyLoading[mk] = true;
     notifyListeners();
     await _repo.loadMonth(mk);
@@ -261,7 +259,7 @@ class AppProvider extends ChangeNotifier {
   }
 
   void _refreshWhenBackOnline() {
-    if (_isRefreshing) return;
+    if (_isRefreshing || !_initialized) return; // Guard against redundant or pre-init refreshes
     _isRefreshing = true;
     notifyListeners();
     _repo.loadAll(monthCount: 3).then((_) {
@@ -276,27 +274,36 @@ class AppProvider extends ChangeNotifier {
 
   void _startSmartTimer() {
     _smartRefreshTimer?.cancel();
-<<<<<<< HEAD
-    final inWindow = _isInDrawWindow(getPHTime());
-    _smartRefreshTimer = Timer(
-      inWindow ? const Duration(seconds: 5) : const Duration(seconds: 60),
-      () {
-        if (_isInDrawWindow(getPHTime())) {
-          _repo.loadToday(force: true);
-        }
-        _startSmartTimer();
-      },
-    );
-=======
-    // Poll every 5 minutes during draw window (2PM / 5PM / 9PM PHT)
-    // Sites publish combo results within 5-30 minutes after draw
-    _smartRefreshTimer = Timer.periodic(const Duration(minutes: 5), (_) {
-      final ph = getPHTime();
-      if (_isInDrawWindow(ph)) {
-        _repo.loadToday(forceNetwork: true);
+    final ph = getPHTime();
+    final inWindow = _isInDrawWindow(ph);
+
+    // Only poll aggressively (5s) if we are in the draw window AND missing the result
+    bool missingData = true;
+    if (inWindow && _todayResult != null) {
+      final mins = ph.hour * 60 + ph.minute;
+      if (mins >= 840 && mins <= 875) {
+        missingData = _todayResult!.result2pm == null;
+      } else if (mins >= 1020 && mins <= 1055) {
+        missingData = _todayResult!.result5pm == null;
+      } else if (mins >= 1260 && mins <= 1295) {
+        missingData = _todayResult!.result9pm == null;
       }
+    }
+
+    final interval = (inWindow && missingData)
+        ? const Duration(seconds: 5)
+        : const Duration(seconds: 60);
+
+    _smartRefreshTimer = Timer(interval, () {
+      if (inWindow && missingData) {
+        _repo.loadToday(force: true);
+      } else {
+        // If not in window or already have data, just do a regular background check
+        // This ensures the trophy/winners count eventually arrives if missing
+        _repo.loadToday();
+      }
+      _startSmartTimer();
     });
->>>>>>> 040d0d8d8116ae221e5f6e6341a7441b44ce6370
   }
 
   bool _isInDrawWindow(DateTime ph) {
@@ -308,9 +315,20 @@ class AppProvider extends ChangeNotifier {
 
   void _scheduleMidnightReset() {
     _midnightTimer?.cancel();
-    final ph      = getPHTime();
-    final nextDay = DateTime(ph.year, ph.month, ph.day + 1);
-    _midnightTimer = Timer(nextDay.difference(ph), () {
+    final phNow    = getPHTime();
+    // Midnight in PH time: calculate the next 00:00:00 using a consistent UTC-based DateTime
+    final phTomorrow = DateTime.utc(phNow.year, phNow.month, phNow.day + 1);
+    
+    var duration = phTomorrow.difference(phNow);
+    
+    // Safety guard: if calculation results in negative/zero due to clock drift, 
+    // wait at least 1 minute before trying again to prevent tight loops.
+    if (duration.inSeconds <= 0) {
+      duration = const Duration(minutes: 1);
+    }
+
+    _midnightTimer = Timer(duration, () {
+      Log.d('AppProvider', 'midnight reached, resetting state');
       _todayResult   = null;
       _cachedAllRows = null;
       _cachedStats   = null;

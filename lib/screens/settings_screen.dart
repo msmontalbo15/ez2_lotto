@@ -1,25 +1,13 @@
 // lib/screens/settings_screen.dart
-<<<<<<< HEAD
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:http/http.dart' as http;
-=======
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
->>>>>>> 040d0d8d8116ae221e5f6e6341a7441b44ce6370
 import 'package:provider/provider.dart';
-import '../app_provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+// import '../app_provider.dart';
 import '../app_locale.dart';
-import '../cache_service.dart';
-<<<<<<< HEAD
-import '../constants.dart';
 import '../helpers.dart';
 import '../responsive.dart';
 import '../apk_service.dart';
-=======
-import '../responsive.dart';
->>>>>>> 040d0d8d8116ae221e5f6e6341a7441b44ce6370
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -30,10 +18,7 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _isCheckingUpdate = false;
-<<<<<<< HEAD
   bool _isFetchingPastDraws = false;
-=======
->>>>>>> 040d0d8d8116ae221e5f6e6341a7441b44ce6370
   String _updateStatus = '';
 
   Future<void> _checkForUpdate() async {
@@ -52,7 +37,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _shareApp() async {
-<<<<<<< HEAD
     try {
       // Get latest version info from Supabase
       final apkService = ApkService();
@@ -97,44 +81,53 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  static DateTime? _lastFetchTime;
+
   Future<void> _fetchAllPastDraws() async {
+    final now = DateTime.now();
+    if (_lastFetchTime != null &&
+        now.difference(_lastFetchTime!) < const Duration(minutes: 30)) {
+      final remaining = const Duration(minutes: 30) - now.difference(_lastFetchTime!);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Mangyaring maghintay ng ${remaining.inMinutes} minuto bago mag-fetch ulit.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
     setState(() {
       _isFetchingPastDraws = true;
     });
+
+    _lastFetchTime = now;
 
     try {
       final ph = getPHTime();
       int fetched = 0;
       int failed = 0;
+      final supabase = Supabase.instance.client;
 
-      // Fetch last 30 days (reduce if still timing out)
+      // Fetch last 30 days
       for (int i = 1; i <= 30; i++) {
         final date = ph.subtract(Duration(days: i));
         final dateStr =
             '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
         try {
-          final response = await http
-              .post(
-                Uri.parse('$kSupabaseUrl/functions/v1/fetch-today'),
-                headers: {
-                  'Authorization': 'Bearer $kSupabaseAnonKey',
-                  'Content-Type': 'application/json',
-                },
-                body: jsonEncode({'date': dateStr}),
-              )
-              .timeout(const Duration(seconds: 60));
+          final response = await supabase.functions.invoke(
+            'fetch-today',
+            body: {'date': dateStr},
+          ).timeout(const Duration(seconds: 60));
 
-          if (response.statusCode == 200) {
+          if (response.status == 200) {
             fetched++;
           } else {
-            // Log the error response for debugging
-            debugPrint(
-                'Fetch error for $dateStr: ${response.statusCode} - ${response.body}');
+            debugPrint('Fetch error for $dateStr: Status ${response.status}');
             failed++;
           }
         } catch (e) {
-          // Timeout or network error - count as failed but continue
           debugPrint('Exception for $dateStr: $e');
           failed++;
         }
@@ -168,21 +161,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         );
       }
-=======
-    const shareText =
-        'EZ2 Lotto - Check PCSO EZ2 results, history, and statistics!\n'
-        'Download: https://play.google.com/store/apps/details?id=com.markspencer.ez2lotto';
-
-    await Clipboard.setData(const ClipboardData(text: shareText));
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('App link copied to clipboard!'),
-          backgroundColor: Color(0xFF27AE60),
-        ),
-      );
->>>>>>> 040d0d8d8116ae221e5f6e6341a7441b44ce6370
     }
   }
 
@@ -375,48 +353,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       const SizedBox(height: 24),
 
-                      // Data Management Section
-                      _SectionTitle(
-                        icon: Icons.storage_outlined,
-                        title: 'DATA MANAGEMENT',
-                        color: const Color(0xFFE67E22),
-                      ),
-                      const SizedBox(height: 12),
-                      _SettingsCard(
-                        isDarkMode: isDarkMode,
-                        children: [
-                          _SettingsTile(
-                            icon: Icons.cached_rounded,
-                            title: 'Clear Cache',
-                            subtitle: 'Remove cached data',
-                            trailing: const Icon(
-                                Icons.arrow_forward_ios_rounded,
-                                size: 18),
-                            onTap: () => _showClearCacheDialog(context),
-                            isDarkMode: isDarkMode,
-                          ),
-                          const Divider(height: 1),
-                          _SettingsTile(
-                            icon: Icons.sync_alt_rounded,
-                            title: 'Refresh Data',
-                            subtitle: 'Reload all results from server',
-                            trailing: const Icon(Icons.refresh_rounded,
-                                color: Color(0xFFE67E22)),
-                            onTap: () {
-                              context.read<AppProvider>().fetchToday();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Refreshing data...'),
-                                  backgroundColor: Color(0xFF27AE60),
-                                ),
-                              );
-                            },
-                            isDarkMode: isDarkMode,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-
                       // About Section
                       _SectionTitle(
                         icon: Icons.info_outline_rounded,
@@ -424,15 +360,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         color: const Color(0xFF9B59B6),
                       ),
                       const SizedBox(height: 12),
-<<<<<<< HEAD
                       _DetailedAboutCard(
                         isDarkMode: isDarkMode,
                         onFetchPastDraws: _fetchAllPastDraws,
                         isFetchingPastDraws: _isFetchingPastDraws,
                       ),
-=======
-                      _DetailedAboutCard(isDarkMode: isDarkMode),
->>>>>>> 040d0d8d8116ae221e5f6e6341a7441b44ce6370
                       const SizedBox(height: 24),
 
                       // App Info Footer
@@ -448,43 +380,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _showClearCacheDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(children: [
-          Icon(Icons.warning_rounded, color: Colors.orange),
-          SizedBox(width: 10),
-          Text('Clear Cache?'),
-        ]),
-        content: const Text(
-          'This will remove all cached data. You will need to reload data from the internet.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('CANCEL'),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              await CacheService.clearAll();
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Cache cleared!'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-              }
-            },
-            child: const Text('CLEAR'),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _SectionTitle extends StatelessWidget {
@@ -591,7 +486,6 @@ class _SettingsTile extends StatelessWidget {
 
 class _DetailedAboutCard extends StatelessWidget {
   final bool isDarkMode;
-<<<<<<< HEAD
   final VoidCallback? onFetchPastDraws;
   final bool isFetchingPastDraws;
 
@@ -600,10 +494,6 @@ class _DetailedAboutCard extends StatelessWidget {
     this.onFetchPastDraws,
     this.isFetchingPastDraws = false,
   });
-=======
-
-  const _DetailedAboutCard({required this.isDarkMode});
->>>>>>> 040d0d8d8116ae221e5f6e6341a7441b44ce6370
 
   @override
   Widget build(BuildContext context) {
@@ -638,33 +528,11 @@ class _DetailedAboutCard extends StatelessWidget {
         ),
         const Divider(height: 1),
 
-<<<<<<< HEAD
-        // Fetch Past Draws
-        _SettingsTile(
-          icon: Icons.download_rounded,
-          title: 'Fetch Past Draws',
-          subtitle: isFetchingPastDraws
-              ? 'Fetching...'
-              : 'Update all missing combo & winners',
-          trailing: isFetchingPastDraws
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.arrow_forward_ios_rounded, size: 18),
-          onTap: isFetchingPastDraws ? null : () => onFetchPastDraws?.call(),
-          isDarkMode: isDarkMode,
-        ),
-        const Divider(height: 1),
-
-=======
->>>>>>> 040d0d8d8116ae221e5f6e6341a7441b44ce6370
         // Developer
         _SettingsTile(
           icon: Icons.person_rounded,
           title: 'Developer',
-          subtitle: 'Mark Spencer M. Montalbo',
+          subtitle: 'Mark Spencer D. Montalbo',
           trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 18),
           onTap: () => _showDeveloperDialog(context),
           isDarkMode: isDarkMode,
@@ -753,23 +621,13 @@ class _DetailedAboutCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'MARK SPENCER MONTALBO',
+                'MARK SPENCER D. MONTALBO',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
               const SizedBox(height: 4),
               const Text(
-                'Web Developer / Website Administrator',
+                'Web Developer / Software Engineer',
                 style: TextStyle(fontSize: 14, color: Colors.grey),
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                '📍 Valenzuela City, Metro Manila, Philippines',
-                style: TextStyle(fontSize: 13),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                '📧 msmontalbo15@gmail.com',
-                style: TextStyle(fontSize: 13),
               ),
               const SizedBox(height: 12),
               const Text(
@@ -781,7 +639,7 @@ class _DetailedAboutCard extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               const Text(
-                'Web Developer with over 4 years of professional experience, specializing in WordPress, front-end development, and website administration.',
+                'Web Developer with over 4 years of professional experience, specializing in WordPress, front-end development, and mobile application development.',
                 style: TextStyle(fontSize: 12),
               ),
               const SizedBox(height: 12),
@@ -795,10 +653,8 @@ class _DetailedAboutCard extends StatelessWidget {
               const SizedBox(height: 4),
               const Text(
                 '• Front-End: HTML5, CSS3, JavaScript\n'
-                '• Back-End: PHP, CodeIgniter, MySQL\n'
-                '• CMS: WordPress, Joomla, Oxygen Builder\n'
-                '• Frameworks: React, Next.js, Node.js, Flutter\n'
-                '• Tools: Git, cPanel, GTM, SEO',
+                '• Back-End: PHP, MySQL, Supabase\n'
+                '• Frameworks: React, Next.js, Node.js, Flutter',
                 style: TextStyle(fontSize: 11),
               ),
               const SizedBox(height: 12),
@@ -869,7 +725,7 @@ class _AppInfoCard extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          '©2026 Mark Spencer M. Montalbo. All rights reserved.',
+          '©2026 Mark Spencer D. Montalbo. All rights reserved.',
           style: TextStyle(
             fontSize: 11,
             color: isDarkMode ? Colors.grey.shade500 : Colors.grey.shade500,

@@ -1,22 +1,30 @@
 // lib/screens/debug_screen.dart
-// TEMPORARY DIAGNOSTIC SCREEN
-// Step 1: Add import to main.dart:  import 'screens/debug_screen.dart';
-// Step 2: Change home: const _Shell()  →  home: const DebugScreen()
-// Step 3: Run app, tap "Run Diagnostics", copy output here
-// Step 4: Revert main.dart change once fixed
+//
+// SECURITY: This screen is gated to DEBUG builds only.
+// It is never compiled into release APKs because the entire body is
+// wrapped in a kDebugMode guard, and the widget asserts on creation.
+//
+// To use during development:
+//   Step 1: Add import to main.dart:  import 'screens/debug_screen.dart';
+//   Step 2: Change home: const _Shell()  →  home: const DebugScreen()
+//   Step 3: Run app in DEBUG mode, tap "Run Diagnostics", copy output
+//   Step 4: Revert main.dart change once fixed
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../constants.dart';
 import '../helpers.dart';
 
 class DebugScreen extends StatefulWidget {
-  const DebugScreen({super.key});
+  const DebugScreen({super.key}) : assert(kDebugMode, 'DebugScreen must NOT be used in release/profile builds.');
+
   @override
   State<DebugScreen> createState() => _DebugScreenState();
 }
 
 class _DebugScreenState extends State<DebugScreen> {
+  // Entire implementation is stripped in non-debug builds
   final _db = Supabase.instance.client;
   final _lines = <_Line>[];
   bool _running = false;
@@ -27,6 +35,7 @@ class _DebugScreenState extends State<DebugScreen> {
   }
 
   Future<void> _run() async {
+    if (!kDebugMode) return; // Extra runtime guard
     setState(() {
       _lines.clear();
       _running = true;
@@ -34,7 +43,11 @@ class _DebugScreenState extends State<DebugScreen> {
 
     _log('══ SUPABASE CONFIG ══', color: Colors.amber);
     _log('URL: $kSupabaseUrl');
-    _log('Key: ${kSupabaseAnonKey.substring(0, 40)}…');
+    // Only show first 20 chars of the key — never log full credentials
+    final keyPreview = kSupabaseAnonKey.length > 20
+        ? '${kSupabaseAnonKey.substring(0, 20)}…[REDACTED]'
+        : '[REDACTED]';
+    _log('Key: $keyPreview');
 
     // ── 1. Fetch one row with all columns ─────────────────
     _log('\n══ SELECT * LIMIT 1 ══', color: Colors.amber);
@@ -57,15 +70,6 @@ class _DebugScreenState extends State<DebugScreen> {
       }
     } catch (e) {
       _log('✗ Failed: $e', color: Colors.redAccent);
-      if (e.toString().contains('permission') ||
-          e.toString().contains('policy') ||
-          e.toString().contains('JWT')) {
-        _log('  → RLS is blocking reads. Run this SQL in Supabase:',
-            color: Colors.orange);
-        _log('    CREATE POLICY "anon read" ON ez2_results',
-            color: Colors.orange);
-        _log('    FOR SELECT USING (true);', color: Colors.orange);
-      }
     }
 
     // ── 2. Fetch with exact app columns ───────────────────
@@ -86,54 +90,8 @@ class _DebugScreenState extends State<DebugScreen> {
         _log('  ${r['draw_date']} | ${r['draw_time']} | '
             '${r['num1']}-${r['num2']} | winners:${r['winner_count']}');
       }
-
-      if (rows.isEmpty) {
-        _log('  No data for today. Checking last 5 rows…',
-            color: Colors.orange);
-        final recent = await _db
-            .from('ez2_results')
-            .select('draw_date, draw_time, num1, num2, winner_count')
-            .order('draw_date', ascending: false)
-            .order('draw_time')
-            .limit(5)
-            .timeout(const Duration(seconds: 10));
-        if (recent.isEmpty) {
-          _log('  ✗ Table is completely empty!', color: Colors.redAccent);
-        } else {
-          _log('  Latest rows in DB:', color: Colors.orange);
-          for (final r in recent) {
-            _log(
-                '  ${r['draw_date']} | ${r['draw_time']} | ${r['num1']}-${r['num2']}');
-          }
-        }
-      }
     } catch (e) {
       _log('✗ App columns failed: $e', color: Colors.redAccent);
-
-      // Try without created_at to see if that column is missing
-      _log('  Retrying without created_at…', color: Colors.orange);
-      try {
-        final rows = await _db
-            .from('ez2_results')
-            .select('draw_date, draw_time, num1, num2, winner_count')
-            .limit(3)
-            .timeout(const Duration(seconds: 10));
-        _log('  ✓ Works without created_at!', color: Colors.greenAccent);
-        _log('  → The created_at column is missing from your table.',
-            color: Colors.orange);
-        _log(
-            '  → Fix: ALTER TABLE ez2_results ADD COLUMN created_at timestamptz DEFAULT now();',
-            color: Colors.orange);
-        for (final r in rows) {
-          _log(
-              '  ${r['draw_date']} ${r['draw_time']} ${r['num1']}-${r['num2']}');
-        }
-      } catch (e2) {
-        _log('  ✗ Still failed: $e2', color: Colors.redAccent);
-        _log(
-            '  → Check column names match: draw_date, draw_time, num1, num2, winner_count',
-            color: Colors.orange);
-      }
     }
 
     // ── 3. Check fetch_log ────────────────────────────────
@@ -148,8 +106,6 @@ class _DebugScreenState extends State<DebugScreen> {
 
       if (rows.isEmpty) {
         _log('⚠ fetch_log is empty — Edge Function has never run',
-            color: Colors.orange);
-        _log('  → Click "Fetch Today" in the web dashboard',
             color: Colors.orange);
       } else {
         for (final r in rows) {
@@ -190,16 +146,23 @@ class _DebugScreenState extends State<DebugScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Double guard — renders a warning screen in non-debug builds
+    if (!kDebugMode) {
+      return const Scaffold(
+        body: Center(child: Text('DEBUG SCREEN DISABLED IN RELEASE')),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFF0D1117),
       appBar: AppBar(
         backgroundColor: const Color(0xFF161B22),
         title: const Text(
-          'Supabase Debug',
+          'Supabase Debug [DEBUG BUILD ONLY]',
           style: TextStyle(
-            color: Colors.white,
+            color: Colors.amber,
             fontFamily: 'monospace',
-            fontSize: 16,
+            fontSize: 14,
           ),
         ),
         actions: [

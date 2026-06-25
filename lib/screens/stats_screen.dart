@@ -18,15 +18,11 @@ class _StatsScreenState extends State<StatsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
     final prov = context.watch<AppProvider>();
     final allRows = prov.allHistoryRows;
     final stats = allRows.isEmpty ? null : computeStats(allRows);
 
     return Scaffold(
-      backgroundColor:
-          isDarkMode ? const Color(0xFF121212) : const Color(0xFFF5F0E8),
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
@@ -48,11 +44,7 @@ class _StatsScreenState extends State<StatsScreen> {
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-<<<<<<< HEAD
                       Text('ISTATISTIKA',
-=======
-                      Text('STATISTICS',
->>>>>>> 040d0d8d8116ae221e5f6e6341a7441b44ce6370
                           style: TextStyle(
                               color: Colors.white,
                               fontSize: context.titleFontSize,
@@ -150,7 +142,6 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
         Container(
@@ -172,8 +163,8 @@ class _SectionHeader extends StatelessWidget {
         child: Text(sub,
             style: TextStyle(
                 fontSize: 13,
-                color:
-                    isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600)),
+                color: Theme.of(context).textTheme.bodySmall?.color ??
+                    Colors.grey.shade600)),
       ),
     ]);
   }
@@ -184,18 +175,19 @@ class _Ball extends StatelessWidget {
   final String n;
   final Color color;
   final double size;
-  const _Ball({required this.n, required this.color, this.size = 36});
+  const _Ball({required this.n, required this.color, this.size = 40});
 
   @override
   Widget build(BuildContext context) {
+    final ballSize = context.lottoBallSize(baseSize: size);
     return Container(
-      width: size,
-      height: size,
+      width: ballSize,
+      height: ballSize,
       decoration: BoxDecoration(shape: BoxShape.circle, color: color),
       child: Center(
           child: Text(n,
               style: TextStyle(
-                  fontSize: size * 0.42,
+                  fontSize: ballSize * 0.48,
                   fontWeight: FontWeight.w900,
                   color: Colors.white))),
     );
@@ -209,26 +201,24 @@ class _MostDrawnNumbersTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
-    final rowColor = isDarkMode ? const Color(0xFF2C2C2C) : Colors.grey.shade50;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final rowEvenColor =
+        isDark ? Colors.white.withValues(alpha: 0.03) : Colors.grey.shade50;
+    final rowOddColor = isDark ? Colors.transparent : Colors.white;
+    final borderColor = Theme.of(context).dividerColor.withValues(alpha: 0.5);
 
     return Container(
       decoration: BoxDecoration(
-        color: cardColor,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-            color: isDarkMode ? const Color(0xFF3E3E3E) : Colors.grey.shade200),
+        border: Border.all(color: Theme.of(context).dividerColor),
       ),
+      clipBehavior: Clip.antiAlias,
       child: Column(children: [
         _TableHeader(
           color: const Color(0xFF1A5276),
-<<<<<<< HEAD
           children: const ['#', 'Numbers', 'Bes', 'Huling Lumabas'],
-=======
-          children: const ['#', 'Numbers', 'Hits', 'Last Seen'],
->>>>>>> 040d0d8d8116ae221e5f6e6341a7441b44ce6370
-          widths: const [36, 0, 48, 0],
+          widths: const [32, 0, 44, 0],
         ),
         ...combos.asMap().entries.map((e) {
           final i = e.key;
@@ -237,33 +227,30 @@ class _MostDrawnNumbersTable extends StatelessWidget {
           final n1 = parts.isNotEmpty ? parts[0] : '?';
           final n2 = parts.length > 1 ? parts[1] : '?';
           return Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: EdgeInsets.symmetric(
+                horizontal: context.isSmallPhone ? 12 : 16, vertical: 12),
             decoration: BoxDecoration(
-              color: i.isEven ? rowColor : cardColor,
-              border: Border(
-                  top: BorderSide(
-                      color: isDarkMode
-                          ? const Color(0xFF3E3E3E)
-                          : Colors.grey.shade100)),
+              color: i.isEven ? rowEvenColor : rowOddColor,
+              border: Border(top: BorderSide(color: borderColor)),
             ),
             child: Row(children: [
               SizedBox(
-                  width: 36,
+                  width: 32,
                   child: Text('#${i + 1}',
                       style: TextStyle(
-                          fontSize: 14,
+                          fontSize: 13,
                           fontWeight: FontWeight.w700,
-                          color: isDarkMode
-                              ? Colors.grey.shade400
-                              : Colors.grey.shade500))),
+                          color: isDark
+                              ? Colors.grey.shade600
+                              : Colors.grey.shade400))),
               Row(children: [
-                _Ball(n: n1, color: const Color(0xFF1A5276)),
+                _Ball(n: n1, color: const Color(0xFF1A5276), size: 38),
                 const SizedBox(width: 4),
-                _Ball(n: n2, color: const Color(0xFF1A5276)),
+                _Ball(n: n2, color: const Color(0xFF1A5276), size: 38),
               ]),
               const Spacer(),
               SizedBox(
-                  width: 48,
+                  width: 44,
                   child: Text('x${c.count}',
                       style: const TextStyle(
                           fontSize: 15,
@@ -274,21 +261,16 @@ class _MostDrawnNumbersTable extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(c.lastDate,
-<<<<<<< HEAD
-                          style: const TextStyle(
-                              fontSize: 12, color: Colors.grey)),
-                      Text('(${c.daysSinceLast} araw na ang nakakaraan)',
-=======
-                          style: TextStyle(
-                              fontSize: 12,
-                              color: isDarkMode
-                                  ? Colors.grey.shade400
-                                  : Colors.grey)),
-                      Text('(${c.daysSinceLast} days ago)',
->>>>>>> 040d0d8d8116ae221e5f6e6341a7441b44ce6370
                           style: TextStyle(
                               fontSize: 11,
-                              color: isDarkMode
+                              color: isDark
+                                  ? Colors.grey.shade400
+                                  : Colors.grey.shade600,
+                              fontWeight: FontWeight.w500)),
+                      Text('(${c.daysSinceLast}d ago)',
+                          style: TextStyle(
+                              fontSize: 10,
+                              color: isDark
                                   ? Colors.grey.shade600
                                   : Colors.grey.shade400)),
                     ]),
@@ -308,79 +290,74 @@ class _MostDrawnPairsTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
-    final rowColor = isDarkMode ? const Color(0xFF2C2C2C) : Colors.grey.shade50;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final rowEvenColor =
+        isDark ? Colors.white.withValues(alpha: 0.03) : Colors.grey.shade50;
+    final rowOddColor = isDark ? Colors.transparent : Colors.white;
+    final borderColor = Theme.of(context).dividerColor.withValues(alpha: 0.5);
 
     return Container(
       decoration: BoxDecoration(
-          color: cardColor,
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-              color:
-                  isDarkMode ? const Color(0xFF3E3E3E) : Colors.grey.shade200)),
+          border: Border.all(color: Theme.of(context).dividerColor)),
+      clipBehavior: Clip.antiAlias,
       child: Column(children: [
         _TableHeader(
           color: const Color(0xFF7D3C98),
-<<<<<<< HEAD
-          children: const ['#', 'Pairs', 'Bes'],
-=======
-          children: const ['#', 'Pairs', 'Draws'],
->>>>>>> 040d0d8d8116ae221e5f6e6341a7441b44ce6370
-          widths: const [36, 0, 0],
+          children: const ['#', 'Number Pair', 'Bes'],
+          widths: const [32, 0, 0],
         ),
         ...pairs.asMap().entries.map((e) {
           final i = e.key;
           final p = e.value;
           final numStr = p.number.toString().padLeft(2, '0');
           return Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+            padding: EdgeInsets.symmetric(
+                horizontal: context.isSmallPhone ? 12 : 16, vertical: 12),
             decoration: BoxDecoration(
-              color: i.isEven ? rowColor : cardColor,
-              border: Border(
-                  top: BorderSide(
-                      color: isDarkMode
-                          ? const Color(0xFF3E3E3E)
-                          : Colors.grey.shade100)),
+              color: i.isEven ? rowEvenColor : rowOddColor,
+              border: Border(top: BorderSide(color: borderColor)),
             ),
             child: Row(children: [
               SizedBox(
-                  width: 36,
+                  width: 32,
                   child: Text('#${i + 1}',
                       style: TextStyle(
-                          fontSize: 14,
+                          fontSize: 13,
                           fontWeight: FontWeight.w700,
-                          color: isDarkMode
-                              ? Colors.grey.shade400
-                              : Colors.grey.shade500))),
+                          color: isDark
+                              ? Colors.grey.shade600
+                              : Colors.grey.shade400))),
               Row(children: [
-                _Ball(n: numStr, color: const Color(0xFF1E8449), size: 38),
+                _Ball(n: numStr, color: const Color(0xFF1E8449), size: 40),
                 const SizedBox(width: 8),
                 Text('-',
                     style: TextStyle(
                         fontSize: 18,
-                        color: isDarkMode
-                            ? Colors.grey.shade600
-                            : Colors.grey.shade400)),
+                        color: isDark
+                            ? Colors.grey.shade700
+                            : Colors.grey.shade300)),
                 const SizedBox(width: 8),
                 Container(
-                  width: 38,
-                  height: 38,
+                  width: context.lottoBallSize(baseSize: 40),
+                  height: context.lottoBallSize(baseSize: 40),
                   decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                          color: isDarkMode
-                              ? Colors.grey.shade600
-                              : Colors.grey.shade300,
+                          color: isDark
+                              ? Colors.grey.shade800
+                              : Colors.grey.shade200,
                           width: 2)),
                   child: Center(
                       child: Text('?',
                           style: TextStyle(
-                              fontSize: 16,
+                              fontSize:
+                                  context.lottoBallSize(baseSize: 40) * 0.4,
                               fontWeight: FontWeight.w700,
-                              color: isDarkMode
-                                  ? Colors.grey.shade500
-                                  : Colors.grey.shade400))),
+                              color: isDark
+                                  ? Colors.grey.shade700
+                                  : Colors.grey.shade300))),
                 ),
               ]),
               const Spacer(),
@@ -407,10 +384,11 @@ class _TableHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
+        color: color.withValues(alpha: isDark ? 0.15 : 0.08),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
       ),
       child: Row(
@@ -419,7 +397,9 @@ class _TableHeader extends StatelessWidget {
           final w = i < widths.length ? widths[i] : 0;
           final text = Text(e.value,
               style: TextStyle(
-                  fontSize: 13, fontWeight: FontWeight.w800, color: color));
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  color: isDark ? color.withValues(alpha: 0.9) : color));
           return w > 0
               ? SizedBox(width: w.toDouble(), child: text)
               : (i == children.length - 1 ? text : Expanded(child: text));
@@ -439,9 +419,6 @@ class _WinnersChartCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
-
     // Collect winner data points: one per draw slot
     final points = <_WinPoint>[];
     final recent =
@@ -460,13 +437,12 @@ class _WinnersChartCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: cardColor,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-            color: isDarkMode ? const Color(0xFF3E3E3E) : Colors.grey.shade200),
+        border: Border.all(color: Theme.of(context).dividerColor),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withValues(alpha: isDarkMode ? 0.3 : 0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 8,
               offset: const Offset(0, 2))
         ],
@@ -474,36 +450,56 @@ class _WinnersChartCard extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         // Title + toggle
-        Row(children: [
-          Expanded(
-            child:
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('Chart ng Mga Nanalo sa 2D Lotto',
-                  style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF0E7490))),
-              const SizedBox(height: 2),
-<<<<<<< HEAD
-              Text('Bilang ng nanalo sa mga kamakailang games',
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
-=======
-              Text('Number of winners in recent games',
-                  style: TextStyle(
-                      fontSize: 12,
-                      color: isDarkMode
-                          ? Colors.grey.shade400
-                          : Colors.grey.shade500)),
->>>>>>> 040d0d8d8116ae221e5f6e6341a7441b44ce6370
-            ]),
-          ),
-          const SizedBox(width: 12),
-          _TogglePill(
-            options: const ['Nakaraang 7 Araw', 'Nakaraang 30 Araw'],
-            selected: days == 7 ? 0 : 1,
-            onChanged: (i) => onDaysChanged(i == 0 ? 7 : 30),
-          ),
-        ]),
+        Builder(builder: (ctx) {
+          final isSmall = MediaQuery.sizeOf(ctx).width < 380;
+          if (isSmall) {
+            return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Chart ng Mga Nanalo sa 2D Lotto',
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF0E7490))),
+                  const SizedBox(height: 2),
+                  Text('Bilang ng nanalo sa mga kamakailang games',
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(ctx).textTheme.bodySmall?.color ??
+                              Colors.grey.shade500)),
+                  const SizedBox(height: 8),
+                  _TogglePill(
+                    options: const ['Nakaraang 7 Araw', 'Nakaraang 30 Araw'],
+                    selected: days == 7 ? 0 : 1,
+                    onChanged: (i) => onDaysChanged(i == 0 ? 7 : 30),
+                  ),
+                ]);
+          }
+          return Row(children: [
+            Expanded(
+              child:
+                  Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Text('Chart ng Mga Nanalo sa 2D Lotto',
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF0E7490))),
+                const SizedBox(height: 2),
+                Text('Bilang ng nanalo sa mga kamakailang games',
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(ctx).textTheme.bodySmall?.color ??
+                            Colors.grey.shade500)),
+              ]),
+            ),
+            const SizedBox(width: 12),
+            _TogglePill(
+              options: const ['Nakaraang 7 Araw', 'Nakaraang 30 Araw'],
+              selected: days == 7 ? 0 : 1,
+              onChanged: (i) => onDaysChanged(i == 0 ? 7 : 30),
+            ),
+          ]);
+        }),
         const SizedBox(height: 20),
         // Chart
         points.isEmpty
@@ -512,10 +508,7 @@ class _WinnersChartCard extends StatelessWidget {
                 child: Center(
                     child: Text('Wala pang datos ng nanalo',
                         style: TextStyle(
-                            color: isDarkMode
-                                ? Colors.grey.shade500
-                                : Colors.grey.shade400,
-                            fontSize: 15))),
+                            color: Theme.of(context).hintColor, fontSize: 15))),
               )
             : SizedBox(
                 height: 200,
@@ -543,6 +536,7 @@ class _TogglePill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isSmall = MediaQuery.sizeOf(context).width < 360;
     return Container(
       decoration: BoxDecoration(
           border: Border.all(color: const Color(0xFF0E7490)),
@@ -555,15 +549,15 @@ class _TogglePill extends StatelessWidget {
               onTap: () => onChanged(e.key),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                padding: EdgeInsets.symmetric(
+                    horizontal: isSmall ? 8 : 14, vertical: 8),
                 decoration: BoxDecoration(
                   color: sel ? const Color(0xFF0E7490) : Colors.transparent,
                   borderRadius: BorderRadius.circular(18),
                 ),
                 child: Text(e.value,
                     style: TextStyle(
-                        fontSize: 12,
+                        fontSize: isSmall ? 10 : 12,
                         fontWeight: FontWeight.w700,
                         color: sel ? Colors.white : const Color(0xFF0E7490))),
               ),
@@ -731,16 +725,11 @@ class _HotColdSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
-
     return Container(
       decoration: BoxDecoration(
-          color: cardColor,
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-              color:
-                  isDarkMode ? const Color(0xFF3E3E3E) : Colors.grey.shade200)),
+          border: Border.all(color: Theme.of(context).dividerColor)),
       padding: const EdgeInsets.all(16),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
@@ -756,8 +745,8 @@ class _HotColdSection extends StatelessWidget {
         Text('Most drawn in the last 200 EZ2 draws',
             style: TextStyle(
                 fontSize: 13,
-                color:
-                    isDarkMode ? Colors.grey.shade400 : Colors.grey.shade500)),
+                color: Theme.of(context).textTheme.bodySmall?.color ??
+                    Colors.grey.shade500)),
         const SizedBox(height: 12),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
@@ -781,8 +770,8 @@ class _HotColdSection extends StatelessWidget {
         Text('Least drawn in the last 200 EZ2 draws',
             style: TextStyle(
                 fontSize: 13,
-                color:
-                    isDarkMode ? Colors.grey.shade400 : Colors.grey.shade500)),
+                color: Theme.of(context).textTheme.bodySmall?.color ??
+                    Colors.grey.shade500)),
         const SizedBox(height: 12),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,

@@ -6,23 +6,7 @@ import '../helpers.dart';
 import '../models.dart';
 import '../responsive.dart';
 
-// ── Date helpers (top-level, not duplicated) ──────────────────
-DateTime _parseDate(String d) {
-  const months = {
-    'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4,
-    'May': 5, 'Jun': 6, 'Jul': 7, 'Aug': 8,
-    'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12,
-  };
-  try {
-    final p   = d.split(' ');
-    final m   = months[p[0]] ?? 1;
-    final day = int.parse(p[1].replaceAll(',', ''));
-    final yr  = int.parse(p[2]);
-    return DateTime(yr, m, day);
-  } catch (_) {
-    return DateTime(2000);
-  }
-}
+
 
 String _monthLabel(String mk) {
   final parts = mk.split('-');
@@ -40,6 +24,8 @@ class HistoryScreen extends StatefulWidget {
 }
 
 class _HistoryScreenState extends State<HistoryScreen> {
+  bool _isCompactView = false;
+
   @override
   void initState() {
     super.initState();
@@ -58,7 +44,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-<<<<<<< HEAD
     final prov       = context.watch<AppProvider>();
     final months     = prov.availableMonths;
     final mk         = prov.selectedMonth;
@@ -67,13 +52,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final todayDate  = toShortDate(getPHTime());
     final ph         = getPHTime();
     final isCurrent  = mk == monthKey(ph);
-=======
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
-    final prov = context.watch<AppProvider>();
-    final months = prov.availableMonths;
-    final mk = prov.selectedMonth;
->>>>>>> 040d0d8d8116ae221e5f6e6341a7441b44ce6370
 
     // ── Build visible rows ─────────────────────────────────
     List<DayResult> visible = [];
@@ -91,7 +69,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
       }
 
       visible = rowMap.values.toList()
-        ..sort((a, b) => _parseDate(b.date).compareTo(_parseDate(a.date)));
+        ..sort((a, b) {
+          final da = parseShortDate(b.date);
+          final db = parseShortDate(a.date);
+          if (da == null || db == null) return 0;
+          return da.compareTo(db);
+        });
 
       visible = visible.where((r) {
         if (r.date == todayDate) return true;
@@ -99,9 +82,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
       }).toList();
     }
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor:
-          isDarkMode ? const Color(0xFF121212) : const Color(0xFFF5F0E8),
       body: SafeArea(
         child: Column(children: [
           // ── Header ───────────────────────────────────────
@@ -115,26 +98,70 @@ class _HistoryScreenState extends State<HistoryScreen> {
               context.horizontalPadding,
               context.headerPaddingTop,
               context.horizontalPadding,
-<<<<<<< HEAD
               20,
             ),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-=======
-              24,
-            ),
-            child:
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
->>>>>>> 040d0d8d8116ae221e5f6e6341a7441b44ce6370
-              Text('HISTORY',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: context.titleFontSize,
-                      fontWeight: FontWeight.w900)),
-              const SizedBox(height: 4),
-              Text('Previous EZ2 results',
-                  style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.75),
-                      fontSize: 16)),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('HISTORY',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: context.titleFontSize,
+                              fontWeight: FontWeight.w900)),
+                      const SizedBox(height: 4),
+                      Text('Previous EZ2 results',
+                          style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.75),
+                              fontSize: 16)),
+                    ],
+                  ),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    padding: const EdgeInsets.all(4),
+                    child: Row(
+                      children: [
+                        GestureDetector(
+                          onTap: () => setState(() => _isCompactView = false),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: !_isCompactView ? Colors.white : Colors.transparent,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Icon(
+                              Icons.view_agenda_rounded,
+                              size: 20,
+                              color: !_isCompactView ? const Color(0xFF1A5276) : Colors.white,
+                            ),
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () => setState(() => _isCompactView = true),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: _isCompactView ? Colors.white : Colors.transparent,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Icon(
+                              Icons.grid_view_rounded,
+                              size: 20,
+                              color: _isCompactView ? const Color(0xFF1A5276) : Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                ],
+              ),
               const SizedBox(height: 14),
 
               // ── Year selector ──────────────────────────
@@ -160,26 +187,23 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 context.horizontalPadding, 14, context.horizontalPadding, 0),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
-                color: const Color(0xFF1A5276),
+                color: isDark ? const Color(0xFF1E3A50) : const Color(0xFF1A5276),
                 borderRadius: BorderRadius.circular(12)),
             child: Row(children: [
               SizedBox(
-                  width: context.isSmallPhone ? 52 : 72,
+                  width: context.isSmallPhone ? 52 : 60,
                   child: const Text('DATE',
                       style: TextStyle(
                           color: Colors.white,
                           fontSize: 12,
                           fontWeight: FontWeight.w800,
                           letterSpacing: 0.5))),
-              Expanded(child: Center(child: Text('2 PM', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w800)))),
-              Expanded(child: Center(child: Text('5 PM', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w800)))),
-              Expanded(child: Center(child: Text('9 PM', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w800)))),
+              const Expanded(child: Center(child: Text('DRAW RESULTS', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800, letterSpacing: 1)))),
             ]),
           ),
 
           // ── Rows ─────────────────────────────────────────
           Expanded(
-<<<<<<< HEAD
             child: RefreshIndicator(
               onRefresh: () async {
                 final prov = context.read<AppProvider>();
@@ -198,42 +222,28 @@ class _HistoryScreenState extends State<HistoryScreen> {
                           itemCount: visible.length,
                           itemBuilder: (ctx, i) {
                             final r = visible[i];
-                            return _HistoryRow(
-                                row: r, isToday: r.date == todayDate);
+                            return _isCompactView
+                                ? _CompactHistoryRow(
+                                    row: r, isToday: r.date == todayDate)
+                                : _HistoryRow(
+                                    row: r, isToday: r.date == todayDate);
                           },
                         ),
             ),
-=======
-            child: isLoading
-                ? _SkeletonList()
-                : visible.isEmpty
-                    ? _EmptyState(onRetry: () => prov.fetchMonth(mk))
-                    : ListView.builder(
-                        padding: EdgeInsets.fromLTRB(context.horizontalPadding,
-                            8, context.horizontalPadding, 24),
-                        itemCount: visible.length,
-                        itemBuilder: (ctx, i) {
-                          final r = visible[i];
-                          final isToday = r.date == todayDate;
-                          return _HistoryRow(
-                              row: r, isToday: isToday, isDarkMode: isDarkMode);
-                        },
-                      ),
->>>>>>> 040d0d8d8116ae221e5f6e6341a7441b44ce6370
           ),
 
           if (prov.isOffline)
             Container(
               padding:
                   const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              color: const Color(0xFFFFF3CD),
-              child: const Row(children: [
+              color: isDark ? const Color(0xFF3E2723) : const Color(0xFFFFF3CD),
+              child: Row(children: [
                 Icon(Icons.wifi_off_rounded,
-                    size: 14, color: Color(0xFF856404)),
-                SizedBox(width: 6),
+                    size: 14, color: isDark ? Colors.orange.shade300 : const Color(0xFF856404)),
+                const SizedBox(width: 6),
                 Text('Offline — showing cached data',
                     style:
-                        TextStyle(fontSize: 12, color: Color(0xFF856404))),
+                        TextStyle(fontSize: 12, color: isDark ? Colors.orange.shade300 : const Color(0xFF856404))),
               ]),
             ),
         ]),
@@ -348,38 +358,26 @@ class _MonthTabs extends StatelessWidget {
 // ── History Row ───────────────────────────────────────────────
 class _HistoryRow extends StatelessWidget {
   final DayResult row;
-<<<<<<< HEAD
   final bool      isToday;
   const _HistoryRow({required this.row, required this.isToday});
-=======
-  final bool isToday;
-  final bool isDarkMode;
-  const _HistoryRow(
-      {required this.row, required this.isToday, required this.isDarkMode});
->>>>>>> 040d0d8d8116ae221e5f6e6341a7441b44ce6370
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-<<<<<<< HEAD
-        color:        isToday ? const Color(0xFFFFF8E1) : Colors.white,
-=======
-        color: isDarkMode
-            ? (isToday ? const Color(0xFF2C2C2C) : const Color(0xFF1E1E1E))
-            : (isToday ? const Color(0xFFFFF8E1) : Colors.white),
->>>>>>> 040d0d8d8116ae221e5f6e6341a7441b44ce6370
+        color: isToday
+            ? (isDark ? const Color(0xFF3E2F00) : const Color(0xFFFFF8E1))
+            : (isDark ? const Color(0xFF1E1E1E) : Colors.white),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isToday
-              ? const Color(0xFFFFCA2C)
-              : (isDarkMode ? Colors.grey.shade800 : Colors.grey.shade200),
+          color: isToday ? const Color(0xFFFFCA2C) : (isDark ? Colors.grey.shade800 : Colors.grey.shade200),
           width: isToday ? 2 : 1,
         ),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
+              color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.03),
               blurRadius: 4,
               offset: const Offset(0, 1))
         ],
@@ -388,7 +386,7 @@ class _HistoryRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         child: Row(children: [
           SizedBox(
-            width: 72,
+            width: 60,
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               if (isToday)
                 Container(
@@ -405,7 +403,7 @@ class _HistoryRow extends StatelessWidget {
                 ),
               Text(_dayNum(row.date),
                   style: const TextStyle(
-                      fontSize: 20,
+                      fontSize: 24,
                       fontWeight: FontWeight.w900,
                       color: Color(0xFF2C3E50))),
               Text(_dayAbbr(row.date),
@@ -415,9 +413,18 @@ class _HistoryRow extends StatelessWidget {
                       fontWeight: FontWeight.w600)),
             ]),
           ),
-          Expanded(child: _DrawCell(combo: row.result2pm, winners: row.winners2pm, color: const Color(0xFFE67E22))),
-          Expanded(child: _DrawCell(combo: row.result5pm, winners: row.winners5pm, color: const Color(0xFF8E44AD))),
-          Expanded(child: _DrawCell(combo: row.result9pm, winners: row.winners9pm, color: const Color(0xFF2C3E50))),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _VerticalDrawItem(label: '2 PM', combo: row.result2pm, winners: row.winners2pm, color: const Color(0xFFE67E22)),
+                const Divider(height: 16, thickness: 0.5, indent: 8, endIndent: 8),
+                _VerticalDrawItem(label: '5 PM', combo: row.result5pm, winners: row.winners5pm, color: const Color(0xFF8E44AD)),
+                const Divider(height: 16, thickness: 0.5, indent: 8, endIndent: 8),
+                _VerticalDrawItem(label: '9 PM', combo: row.result9pm, winners: row.winners9pm, color: const Color(0xFF2C3E50)),
+              ],
+            ),
+          ),
         ]),
       ),
     );
@@ -447,38 +454,60 @@ class _HistoryRow extends StatelessWidget {
   }
 }
 
-// ── Draw Cell ─────────────────────────────────────────────────
-class _DrawCell extends StatelessWidget {
+// ── Vertical Draw Item ────────────────────────────────────────
+class _VerticalDrawItem extends StatelessWidget {
+  final String  label;
   final String? combo;
   final int?    winners;
   final Color   color;
-  const _DrawCell({required this.combo, required this.winners, required this.color});
+  const _VerticalDrawItem({
+    required this.label,
+    required this.combo,
+    required this.winners,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
     if (combo == null) {
-      return Center(child: Text('—',
-          style: TextStyle(fontSize: 22, color: Colors.grey.shade300)));
-    }
-    final parts = combo!.split('-');
-    return Column(mainAxisSize: MainAxisSize.min, children: [
-      Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-        _Ball(n: parts.isNotEmpty ? parts[0] : '?', color: color),
-        const SizedBox(width: 3),
-        Text('-', style: TextStyle(fontSize: 12, color: Colors.grey.shade400)),
-        const SizedBox(width: 3),
-        _Ball(n: parts.length > 1 ? parts[1] : '?', color: color),
-      ]),
-      if (winners != null) ...[
-        const SizedBox(height: 3),
-        Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(Icons.emoji_events_rounded, size: 10, color: color.withValues(alpha: 0.7)),
-          const SizedBox(width: 2),
-          Text('$winners',
-              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: color)),
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(children: [
+          SizedBox(
+            width: 44,
+            child: Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Colors.grey.shade400)),
+          ),
+          const Expanded(child: Center(child: Text('—', style: TextStyle(fontSize: 24, color: Colors.grey)))),
         ]),
-      ],
-    ]);
+      );
+    }
+
+    final parts = combo!.split('-');
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(children: [
+        SizedBox(
+          width: 44,
+          child: Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: color)),
+        ),
+        const SizedBox(width: 12),
+        _Ball(n: parts.isNotEmpty ? parts[0] : '?', color: color),
+        const SizedBox(width: 8),
+        _Ball(n: parts.length > 1 ? parts[1] : '?', color: color),
+        if (winners != null) ...[
+          const Spacer(),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(8)),
+            child: Row(children: [
+              Icon(Icons.emoji_events_rounded, size: 14, color: color),
+              const SizedBox(width: 4),
+              Text('$winners', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: color)),
+            ]),
+          ),
+        ],
+      ]),
+    );
   }
 }
 
@@ -488,35 +517,17 @@ class _Ball extends StatelessWidget {
   const _Ball({required this.n, required this.color});
   @override
   Widget build(BuildContext context) {
-    final size = context.lottoBallSize(baseSize: 32.0);
+    final size = context.lottoBallSize(baseSize: 54.0);
     return Container(
-<<<<<<< HEAD
       width: size, height: size,
       decoration: BoxDecoration(shape: BoxShape.circle, color: color, boxShadow: [
-        BoxShadow(color: color.withValues(alpha: 0.25), blurRadius: 3, offset: const Offset(0, 1))
+        BoxShadow(color: color.withValues(alpha: 0.25), blurRadius: 4, offset: const Offset(0, 2))
       ]),
       child: Center(child: Text(n,
           style: TextStyle(
-              fontSize: size * 0.4,
+              fontSize: size * 0.52,
               fontWeight: FontWeight.w900,
               color: Colors.white))),
-=======
-      width: size,
-      height: size,
-      decoration:
-          BoxDecoration(shape: BoxShape.circle, color: color, boxShadow: [
-        BoxShadow(
-            color: color.withValues(alpha: 0.25),
-            blurRadius: 3,
-            offset: const Offset(0, 1))
-      ]),
-      child: Center(
-          child: Text(n,
-              style: TextStyle(
-                  fontSize: size * 0.4,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.white))),
->>>>>>> 040d0d8d8116ae221e5f6e6341a7441b44ce6370
     );
   }
 }
@@ -526,6 +537,7 @@ class _SkeletonList extends StatelessWidget {
   const _SkeletonList({required this.hPad});
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return ListView.builder(
       padding: EdgeInsets.fromLTRB(hPad, 8, hPad, 24),
       itemCount: 10,
@@ -533,7 +545,7 @@ class _SkeletonList extends StatelessWidget {
         height: 64,
         margin: const EdgeInsets.only(bottom: 10),
         decoration: BoxDecoration(
-            color: Colors.grey.shade100,
+            color: isDark ? Colors.grey.shade900 : Colors.grey.shade100,
             borderRadius: BorderRadius.circular(16)),
       ),
     );
@@ -565,5 +577,145 @@ class _EmptyState extends StatelessWidget {
         ),
       ),
     ]));
+  }
+}
+
+// ── Compact History Row ───────────────────────────────────────
+class _CompactHistoryRow extends StatelessWidget {
+  final DayResult row;
+  final bool      isToday;
+  const _CompactHistoryRow({required this.row, required this.isToday});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: isToday
+            ? (isDark ? const Color(0xFF3E2F00) : const Color(0xFFFFF8E1))
+            : (isDark ? const Color(0xFF1E1E1E) : Colors.white),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isToday ? const Color(0xFFFFCA2C) : (isDark ? Colors.grey.shade800 : Colors.grey.shade200),
+          width: isToday ? 2 : 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.03),
+              blurRadius: 4,
+              offset: const Offset(0, 1))
+        ],
+      ),
+      child: Row(
+        children: [
+          // Date Column
+          SizedBox(
+            width: context.isSmallPhone ? 52 : 60,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (isToday)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 2),
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                    decoration: BoxDecoration(
+                        color: const Color(0xFFFFCA2C),
+                        borderRadius: BorderRadius.circular(4)),
+                    child: const Text('TODAY',
+                        style: TextStyle(
+                            fontSize: 7,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFF856404))),
+                  ),
+                Text(_dayNum(row.date),
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        color: isDark ? Colors.white : const Color(0xFF2C3E50))),
+                Text(_dayAbbr(row.date),
+                    style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.grey.shade500,
+                        fontWeight: FontWeight.w600)),
+              ]
+            ),
+          ),
+          // Results row
+          Expanded(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _CompactDrawItem(label: '2PM', combo: row.result2pm, color: const Color(0xFFE67E22)),
+                _CompactDrawItem(label: '5PM', combo: row.result5pm, color: const Color(0xFF8E44AD)),
+                _CompactDrawItem(label: '9PM', combo: row.result9pm, color: const Color(0xFF2C3E50)),
+              ],
+            ),
+          )
+        ]
+      )
+    );
+  }
+
+  String _dayNum(String d) {
+    final p = d.split(' ');
+    return p.length >= 2 ? p[1].replaceAll(',', '') : d;
+  }
+
+  String _dayAbbr(String d) {
+    try {
+      const months = {
+        'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4,
+        'May': 5, 'Jun': 6, 'Jul': 7, 'Aug': 8,
+        'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12,
+      };
+      final p  = d.split(' ');
+      final m  = months[p[0]] ?? 1;
+      final dy = int.parse(p[1].replaceAll(',', ''));
+      final y  = int.parse(p[2]);
+      const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      return days[DateTime(y, m, dy).weekday - 1];
+    } catch (_) {
+      return '';
+    }
+  }
+}
+
+class _CompactDrawItem extends StatelessWidget {
+  final String label;
+  final String? combo;
+  final Color color;
+
+  const _CompactDrawItem({required this.label, required this.combo, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    if (combo == null) {
+      return Column(
+        children: [
+          Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.grey.shade400)),
+          const SizedBox(height: 4),
+          const Text('—', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.grey)),
+        ]
+      );
+    }
+    
+    return Column(
+      children: [
+        Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: color)),
+        const SizedBox(height: 4),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: color.withValues(alpha: 0.2)),
+          ),
+          child: Text(combo!, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: color, letterSpacing: 0.5)),
+        )
+      ]
+    );
   }
 }

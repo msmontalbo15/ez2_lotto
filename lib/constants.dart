@@ -60,6 +60,30 @@ const kMonthsFil = [
 ];
 
 // ── Supabase config ───────────────────────────────────────────
-const kSupabaseUrl = 'https://votvvysgaiaycmbgeayh.supabase.co';
-const kSupabaseAnonKey =
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZvdHZ2eXNnYWlheWNtYmdlYXloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxODQ0NDgsImV4cCI6MjA4OTc2MDQ0OH0.ll3My0vVjBYW6Qnk49vplMH_K1OOY6prj--Gaz3uCdw';
+//
+// SECURITY: Inject credentials at build time via --dart-define.
+//
+// Local dev:
+//   flutter run \
+//     --dart-define=SUPABASE_URL=https://votvvysgaiaycmbgeayh.supabase.co \
+//     --dart-define=SUPABASE_ANON_KEY=<key>
+//
+// Release build (CI/CD — never commit actual keys):
+//   flutter build apk --release --obfuscate --split-debug-info=build/symbols \
+//     --dart-define=SUPABASE_URL=$SUPABASE_URL \
+//     --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY
+//
+// The fallback strings below are for local development ONLY.
+// Remove them before distributing a production build.
+//
+// ignore: do_not_use_environment
+const kSupabaseUrl = String.fromEnvironment(
+  'SUPABASE_URL',
+  defaultValue: 'https://votvvysgaiaycmbgeayh.supabase.co', // DEV ONLY
+);
+// ignore: do_not_use_environment
+const kSupabaseAnonKey = String.fromEnvironment(
+  'SUPABASE_ANON_KEY',
+  defaultValue:
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZvdHZ2eXNnYWlheWNtYmdlYXloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxODQ0NDgsImV4cCI6MjA4OTc2MDQ0OH0.ll3My0vVjBYW6Qnk49vplMH_K1OOY6prj--Gaz3uCdw', // DEV ONLY
+);

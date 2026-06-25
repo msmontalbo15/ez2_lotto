@@ -14,10 +14,10 @@
 //   created_at  TIMESTAMPTZ
 
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'helpers.dart';
 import 'models.dart';
+import 'logger.dart';
 
 class ApiService {
   ApiService._();
@@ -37,12 +37,12 @@ class ApiService {
     final oldest   = DateTime(ph.year, ph.month - (monthCount - 1), 1);
     final fromDate = _isoMonth(oldest.year, oldest.month);
 
-    debugPrint('[Api] fetchAll $fromDate → $today');
+    Log.d('ApiService', 'fetchAll $fromDate → $today');
 
     final rows = await _query(fromDate, today);
 
-    debugPrint('[Api] fetchAll: ${rows.length} rows');
-    if (rows.isNotEmpty) debugPrint('[Api] sample: ${rows.first}');
+    Log.d('ApiService', 'fetchAll: ${rows.length} rows');
+    if (rows.isNotEmpty) Log.d('ApiService', 'sample: ${rows.first}');
 
     // Split rows into per-month buckets in one pass
     final byMonth = <String, List<DrawRow>>{};
@@ -78,9 +78,9 @@ class ApiService {
     final from    = _isoMonth(year, month);
     final to      = '$year-${month.toString().padLeft(2, '0')}-${lastDay.toString().padLeft(2, '0')}';
 
-    debugPrint('[Api] fetchMonth $mk');
+    Log.d('ApiService', 'fetchMonth $mk');
     final rows = await _query(from, to);
-    debugPrint('[Api] fetchMonth $mk: ${rows.length} rows');
+    Log.d('ApiService', 'fetchMonth $mk: ${rows.length} rows');
     return _buildMonth(mk, rows);
   }
 
@@ -90,7 +90,7 @@ class ApiService {
     try {
       final res = await _db.functions
           .invoke('fetch-ez2', method: HttpMethod.post, body: {});
-      debugPrint('[Api] triggerScrape: ${jsonEncode(res.data)}');
+      Log.d('ApiService', 'triggerScrape: ${jsonEncode(res.data)}');
       final results = res.data?['results'];
       if (results is! List) return [];
       return results
@@ -98,7 +98,7 @@ class ApiService {
           .where((s) => s.isNotEmpty)
           .toList();
     } catch (e) {
-      debugPrint('[Api] triggerScrape error: $e');
+      Log.e('ApiService', 'triggerScrape error: $e');
       return [];
     }
   }
@@ -130,7 +130,7 @@ class ApiService {
         (i) => currentYear - i,
       );
     } catch (e) {
-      debugPrint('[Api] fetchAvailableYears error: $e');
+      Log.e('ApiService', 'fetchAvailableYears error: $e');
       return [getPHTime().year];
     }
   }
@@ -144,7 +144,7 @@ class ApiService {
           body: {'image': base64Data, 'mime': mimeType});
       return res.data as Map<String, dynamic>?;
     } catch (e) {
-      debugPrint('[Api] readTicketImage error: $e');
+      Log.e('ApiService', 'readTicketImage error: $e');
       return null;
     }
   }
